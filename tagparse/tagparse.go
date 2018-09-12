@@ -1,53 +1,68 @@
 package tagparse
 
 import (
-	"fmt"
 	"reflect"
-
-	"../argumentparse"
 )
 
-func getArgument(field reflect.StructField) string {
-	tag, name := field.Tag.Get("cli"), field.Name
-	if tag != "" {
-		return "--" + tag
-	}
-	return "--" + name
+const TagName = "tabona"
+
+// Object to store your parameters
+type CliConfiguartion struct {
+	targetType reflect.Type
+	args       []argumentTag
 }
 
-func tagParse(args []string, conf interface{}) ([]error, *[]string, interface{}) {
-	if reflect.ValueOf(conf).Kind() != reflect.Ptr {
-		panic("passed conf is not a pointer")
+type argumentTag struct {
+	text string
+	tipe reflect.Type
+}
+
+// Iterates over the type(tipe) fields passing
+// (Name,type,tag) of each to callback
+func forEachStructField(tipe reflect.Type, callBack func(field reflect.StructField)) {
+	for i := 0; i < tipe.NumField(); i++ {
+		field := tipe.Field(i)
+		callBack(field)
 	}
-	errors := make([]error, 0)
-	confType := reflect.TypeOf(conf)
-	newconf := reflect.New(confType)
-	for i := 0; i < confType.NumField(); i++ {
-		argumentName := getArgument(confType.Field(i))
-		switch typeField := confType.Field(i).Type.String(); typeField {
-		case "string":
-			value, newargs, err := argumentparse.ParseArgumentStringParameter(&args, argumentName)
-			args = *newargs
-			if err != nil {
-				errors = append(errors, err)
-			} else {
-				newconf.Field(i).SetString(*value)
-			}
-		case "int":
-			value, newargs, err := argumentparse.ParseArgumentIntParameter(&args, argumentName)
-			args = *newargs
-			if err != nil {
-				errors = append(errors, err)
-			} else {
-				newconf.Field(i).SetInt(int64(value))
-			}
-		case "bool":
-			exists, newargs := argumentparse.Exists(&args, argumentName)
-			args = *newargs
-			newconf.Field(i).SetBool(exists)
-		default:
-			panic(fmt.Sprint("type ", confType.Field(i).Type.String(), " is not supported"))
-		}
+}
+
+func (c *CliConfiguartion) getArgument(field reflect.StructField) (argumentTag, error) {
+	// TODO add features
+	fieldName, fieldTag, fieldType := field.Name, field.Tag.Get(TagName), field.Type
+	if fieldTag != "" {
+		return argumentTag{fieldTag, fieldType}, nil
 	}
-	return errors, &args, newconf
+	return argumentTag{fieldName, fieldType}, nil
+}
+
+func (c *CliConfiguartion) Init() {
+	args := make([]argumentTag, 0)
+	if c.args == nil {
+		forEachStructField(c.targetType, func(field reflect.StructField) {
+			arg, err := c.getArgument(field)
+			if err == nil {
+				args = append(args, arg)
+			}
+		})
+	}
+	c.args = args
+}
+
+// func (c *CliConfiguartion) getFromArg(arg arguments.Arg) {
+
+// }
+// func (c *CliConfiguartion) Parse(args arguments.Args, receiver interface{}) ([]error, []string) {
+// 	errs := make([]error, 0)
+// 	for i, arg := range c.args {
+// 		switch arg.tipe {
+
+// 		case reflect.TypeOf(0) :
+// 		case reflect.TypeOf()
+// 		}
+// 	}
+
+// }
+
+func (CliConfiguartion) GetHelp(helpIntro string, helpAfter string) string {
+	return ""
 }
