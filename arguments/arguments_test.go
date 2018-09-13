@@ -22,7 +22,7 @@ func Test_FindArgumentIndex(t *testing.T) {
 	})
 	t.Run("used argument error", func(t *testing.T) {
 		arguments := InitArguments(args)
-		arguments.useArgument("beta")
+		arguments.UseArgument("beta")
 		_, err := arguments.findArgumentIndex("beta")
 		assert.NotNil(t, err, "expecting error found nil")
 	})
@@ -31,14 +31,14 @@ func Test_FindArgumentIndex(t *testing.T) {
 func Test_UseArgument(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		arguments := InitArguments(args)
-		err := arguments.useArgument("beta")
+		err := arguments.UseArgument("beta")
 		assert.Nil(t, err, "unexpected error")
-		unuseds := arguments.getUnused()
+		unuseds := arguments.GetUnused()
 		assert.Equal(t, []string{"alpha", "gamma", "delta"}, unuseds, "arguments not marked as used")
 	})
 	t.Run("returns error", func(t *testing.T) {
 		arguments := InitArguments(args)
-		err := arguments.useArgument("epsilone")
+		err := arguments.UseArgument("epsilone")
 		assert.NotNil(t, err, "expecting error found nil")
 	})
 }
@@ -49,7 +49,7 @@ func Test_ParseStringParameter(t *testing.T) {
 		param, err := arguments.ParseStringParameter("beta")
 		assert.Nil(t, err, "expected error")
 		assert.Equal(t, "gamma", param, "expected error")
-		unuseds := arguments.getUnused()
+		unuseds := arguments.GetUnused()
 		assert.Equal(t, []string{"alpha", "delta"}, unuseds, "arguments not marked as used")
 	})
 	t.Run("error from findArgumentIndex ", func(t *testing.T) {
@@ -59,7 +59,7 @@ func Test_ParseStringParameter(t *testing.T) {
 	})
 	t.Run("used argument error", func(t *testing.T) {
 		arguments := InitArguments(args)
-		err := arguments.useArgument("gamma")
+		err := arguments.UseArgument("gamma")
 		_, err = arguments.ParseStringParameter("beta")
 		assert.NotNil(t, err, "expected error")
 	})
@@ -76,7 +76,7 @@ func Test_ParseIntParameter(t *testing.T) {
 		param, err := arguments.ParseIntParameter("beta")
 		assert.Nil(t, err, "expected error")
 		assert.Equal(t, 2, param, "expected error")
-		unuseds := arguments.getUnused()
+		unuseds := arguments.GetUnused()
 		assert.Equal(t, []string{"alpha"}, unuseds, "arguments not marked as used when they are")
 	})
 	t.Run("error from ParseStringParameter ", func(t *testing.T) {
@@ -94,7 +94,7 @@ func Test_ParseIntParameter(t *testing.T) {
 func Test_getUnused(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		arguments := InitArguments(args)
-		param := arguments.getUnused()
+		param := arguments.GetUnused()
 		assert.Equal(t, args, param, "unused argument is broken")
 	})
 	t.Run("error from ParseStringParameter ", func(t *testing.T) {

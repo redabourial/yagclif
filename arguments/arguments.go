@@ -18,7 +18,7 @@ func InitArguments(arguments []string) *Args {
 	return &argObj
 }
 
-func (args Args) useArgument(argumentName string) error {
+func (args Args) UseArgument(argumentName string) error {
 	argIndex, err := args.findArgumentIndex(argumentName)
 	if err == nil {
 		args[argIndex].Use()
@@ -76,7 +76,7 @@ func (args Args) ParseIntArrayParameter(argumentName string) (int, error) {
 	return 0, nil
 }
 
-func (args Args) getUnused() []string {
+func (args Args) GetUnused() []string {
 	unuseds := make([]string, 0)
 	for _, arg := range args {
 		if arg.IsNotUsed() {
