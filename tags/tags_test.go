@@ -13,7 +13,7 @@ type testStruct1 struct {
 	intField    int    `tabona:"bar"`
 }
 
-func Test_forEachStructField(t *testing.T) {
+func Test_New(t *testing.T) {
 	actualParameters := make([]string, 0)
 	callback := func(field reflect.StructField, index int) {
 		fieldName, fieldTag, fieldType := field.Name, field.Tag.Get(TagName), field.Type

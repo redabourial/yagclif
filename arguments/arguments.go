@@ -7,18 +7,28 @@ import (
 	"./argument"
 )
 
-type Args []argument.Argument
+type arguments []argument.Argument
 
-func InitArguments(arguments []string) *Args {
-	argObj := make(Args, 0)
-	for _, argText := range arguments {
+type Arguments interface {
+	UseArgument(argumentName string) error
+	findArgumentIndex(argumentName string) (int, error)
+	ParseStringParameter(argumentName string) (string, error)
+	ParseIntParameter(argumentName string) (int, error)
+	ParseStringArrayParameter(argumentName string) (int, error)
+	ParseIntArrayParameter(argumentName string) (int, error)
+	GetUnused() []string
+}
+
+func New(args []string) Arguments {
+	argObj := make(arguments, 0)
+	for _, argText := range args {
 		newArg := argument.New(argText)
 		argObj = append(argObj, newArg)
 	}
 	return &argObj
 }
 
-func (args Args) UseArgument(argumentName string) error {
+func (args arguments) UseArgument(argumentName string) error {
 	argIndex, err := args.findArgumentIndex(argumentName)
 	if err == nil {
 		args[argIndex].Use()
@@ -27,7 +37,7 @@ func (args Args) UseArgument(argumentName string) error {
 	return err
 }
 
-func (args Args) findArgumentIndex(argumentName string) (int, error) {
+func (args arguments) findArgumentIndex(argumentName string) (int, error) {
 	for index, argument := range args {
 		if argument.Equals(argumentName) {
 			if argument.IsNotUsed() {
@@ -39,7 +49,7 @@ func (args Args) findArgumentIndex(argumentName string) (int, error) {
 	return -1, errors.New("error argument not found")
 }
 
-func (args Args) ParseStringParameter(argumentName string) (string, error) {
+func (args arguments) ParseStringParameter(argumentName string) (string, error) {
 	argIndex, err := args.findArgumentIndex(argumentName)
 	if err != nil {
 		return "", err
@@ -55,7 +65,7 @@ func (args Args) ParseStringParameter(argumentName string) (string, error) {
 	return "", errors.New("argument doesn't have parameter")
 }
 
-func (args Args) ParseIntParameter(argumentName string) (int, error) {
+func (args arguments) ParseIntParameter(argumentName string) (int, error) {
 	parameter, err := args.ParseStringParameter(argumentName)
 	if err != nil {
 		return 0, err
@@ -66,17 +76,17 @@ func (args Args) ParseIntParameter(argumentName string) (int, error) {
 	}
 	return parameterInt, nil
 }
-func (args Args) ParseStringArrayParameter(argumentName string) (int, error) {
+func (args arguments) ParseStringArrayParameter(argumentName string) (int, error) {
 	// TODO implement
 	return 0, nil
 }
 
-func (args Args) ParseIntArrayParameter(argumentName string) (int, error) {
+func (args arguments) ParseIntArrayParameter(argumentName string) (int, error) {
 	// TODO implement
 	return 0, nil
 }
 
-func (args Args) GetUnused() []string {
+func (args arguments) GetUnused() []string {
 	unuseds := make([]string, 0)
 	for _, arg := range args {
 		if arg.IsNotUsed() {
