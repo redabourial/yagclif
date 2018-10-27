@@ -1,6 +1,7 @@
 package cliced
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -22,6 +23,28 @@ const constraintValueDelimiter = ":"
 
 // Value of the delimiter between constraints.
 const constraintsDelimiter = ";"
+
+// Struct for stroring key-value string pair
+type keyValuePair struct {
+	key   string
+	value string
+}
+
+// Split a constraint as key-value constraint
+func splitConstraint(constraint string) (keyValuePair, error) {
+	parts := strings.Split(constraint, constraintValueDelimiter)
+	switch len(parts) {
+	case 1:
+		return keyValuePair{
+			parts[0], "",
+		}, nil
+	case 2:
+		return keyValuePair{
+			parts[0], parts[1],
+		}, nil
+	}
+	return keyValuePair{}, fmt.Errorf("syntax error too many characters %s ", constraintValueDelimiter)
+}
 
 // Struct defining a parameter from a structField.
 type parameter struct {
@@ -68,12 +91,12 @@ func (p *parameter) Mandatory() bool {
 func (p *parameter) CliNames() []string {
 	if p.hasShortName() {
 		return []string{
-			fmt.Sprint(namePrefix, p.name),
-			fmt.Sprint(shortNamePrefix, p.shortName),
+			fmt.Sprint(namePrefix, strings.ToLower(p.name)),
+			fmt.Sprint(shortNamePrefix, strings.ToLower(p.shortName)),
 		}
 	}
 	return []string{
-		fmt.Sprint(namePrefix, p.name),
+		fmt.Sprint(namePrefix, strings.ToLower(p.name)),
 	}
 }
 
@@ -85,6 +108,34 @@ func (p *parameter) Delimiter() string {
 // Splits a string by the delimiter.
 func (p *parameter) Split(s string) []string {
 	return strings.Split(s, p.delimiter)
+}
+
+func (p *parameter) GetHelp() string {
+	var buffer bytes.Buffer
+	buffer.WriteString(strings.Join(p.CliNames(), " "))
+	buffer.WriteString(" ")
+	buffer.WriteString(p.tipe.String())
+	buffer.WriteString(" ")
+	if p.IsArrayType() {
+		buffer.WriteString("delimiter ")
+		if p.delimiter == " " {
+			buffer.WriteString("whitespace ")
+
+		} else {
+			buffer.WriteString(p.delimiter)
+			buffer.WriteString(" ")
+		}
+	}
+	if p.Mandatory() {
+		buffer.WriteString("(mandatory)")
+		buffer.WriteString(" ")
+	}
+	if p.description != "" {
+		buffer.WriteString(": ")
+		buffer.WriteString(p.description)
+	}
+	buffer.WriteString("\r\n")
+	return buffer.String()
 }
 
 // Getter for tipe.
@@ -123,6 +174,12 @@ func (p *parameter) Used() bool {
 // Marks the parameters as used.
 func (p *parameter) Use() {
 	p.used = true
+}
+
+func (p *parameter) IsArrayType() bool {
+	stringArrayType, intArrayType := reflect.TypeOf([]string{}), reflect.TypeOf([]int{})
+	t := p.tipe
+	return t == stringArrayType || t == intArrayType
 }
 
 // TODO comment better
@@ -183,6 +240,7 @@ func (p *parameter) setIntArray(obj interface{}) func(value string) error {
 
 // fills an object with the desired value
 func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, error) {
+	// TODO add parameter usage check
 	switch p.tipe {
 	case reflect.TypeOf(true):
 		return p.setBool(obj), nil
@@ -198,82 +256,8 @@ func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, e
 	return nil, fmt.Errorf("Incompatible type")
 }
 
-// Incapsulating interface.
-type Parameter interface {
-	// Returns the parameter name.
-	Name() string
-	// Returns if an argument matches
-	// a parameter.
-	CliNames() []string
-	Matches(string) bool
-	// Returns the index of the parameter
-	// in the struct.
-	Index() int
-	// Returns the descriptions of the
-	// parameter.
-	Description() string
-	// Returns if the parameter is
-	// mandatory.
-	Mandatory() bool
-	// Returns a delimiter if specified.
-	Delimiter() string
-	// Splits the string as array by the
-	// delimiter.
-	Split(string) []string
-	// Returns the type of the parameter.
-	Type() reflect.Type
-	// TODO comment
-	getValue(obj interface{}) reflect.Value
-	// Returns a callback for
-	SetterCallback(interface{}) (func(string) error, error)
-}
-
-// Returns a new Paramter from the structField
-func newParameter(sf reflect.StructField) (Parameter, error) {
-	tag, newParam := sf.Tag.Get(tagName), parameter{
-		name:  sf.Name,
-		index: sf.Index[0],
-		tipe:  sf.Type,
-	}
-	if tag == "" {
-		return &newParam, nil
-	}
-	constraints := strings.Split(tag, constraintsDelimiter)
-	for _, constraint := range constraints {
-		err := fillParameter(&newParam, constraint)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"error parsing constraint %s at field %s : %e",
-				constraint, newParam.name, err)
-		}
-	}
-	return &newParam, nil
-}
-
-// Struct for stroring key-value string pair
-type keyValuePair struct {
-	key   string
-	value string
-}
-
-// Split a constraint as key-value constraint
-func splitConstraint(constraint string) (keyValuePair, error) {
-	parts := strings.Split(constraint, constraintValueDelimiter)
-	switch len(parts) {
-	case 1:
-		return keyValuePair{
-			parts[0], "",
-		}, nil
-	case 2:
-		return keyValuePair{
-			parts[0], parts[1],
-		}, nil
-	}
-	return keyValuePair{}, fmt.Errorf("syntax error too many characters %s ", constraintValueDelimiter)
-}
-
 // Changes the parameter by the value of the constraint.
-func fillParameter(param *parameter, constraint string) error {
+func (param *parameter) fillParameter(constraint string) error {
 	splittedConstraint, err := splitConstraint(constraint)
 	key, value := splittedConstraint.key, splittedConstraint.value
 	if err != nil {
@@ -294,4 +278,29 @@ func fillParameter(param *parameter, constraint string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown key %s", splittedConstraint.value)
+}
+
+// Returns a new Paramter from the structField
+func newParameter(sf reflect.StructField) (*parameter, error) {
+	tag, newParam := sf.Tag.Get(tagName), parameter{
+		name:  sf.Name,
+		index: sf.Index[0],
+		tipe:  sf.Type,
+	}
+	if newParam.IsArrayType() && newParam.delimiter == "" {
+		newParam.delimiter = ","
+	}
+	if tag == "" {
+		return &newParam, nil
+	}
+	constraints := strings.Split(tag, constraintsDelimiter)
+	for _, constraint := range constraints {
+		err := newParam.fillParameter(constraint)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"error parsing constraint %s at field %s : %e",
+				constraint, newParam.name, err)
+		}
+	}
+	return &newParam, nil
 }

@@ -2,6 +2,7 @@ package cliced
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -53,16 +54,16 @@ func TestUsed(t *testing.T) {
 	assert.True(t, p.Used())
 }
 
-func TestFillParameter(t *testing.T) {
+func TestfillParameter(t *testing.T) {
 	t.Run("Works", func(t *testing.T) {
 		param := &parameter{}
 		assert.EqualValues(
 			t,
 			nil,
-			fillParameter(param, "description:42"),
-			fillParameter(param, "shortname:42"),
-			fillParameter(param, "mandatory"),
-			fillParameter(param, "delimiter:;"),
+			param.fillParameter("description:42"),
+			param.fillParameter("shortname:42"),
+			param.fillParameter("mandatory"),
+			param.fillParameter("delimiter:;"),
 		)
 		assert.Equal(t, parameter{
 			description: "42",
@@ -73,11 +74,11 @@ func TestFillParameter(t *testing.T) {
 	})
 	t.Run("splitError", func(t *testing.T) {
 		param := &parameter{}
-		assert.NotNil(t, fillParameter(param, "description::"))
+		assert.NotNil(t, param.fillParameter("description::"))
 	})
 	t.Run("error", func(t *testing.T) {
 		param := &parameter{}
-		assert.NotNil(t, fillParameter(param, "something"))
+		assert.NotNil(t, param.fillParameter("something"))
 	})
 }
 
@@ -130,7 +131,6 @@ func TestMatches(t *testing.T) {
 		})
 	})
 }
-
 func TestNewParameter(t *testing.T) {
 	type foo struct {
 		a int `cliced:"something"`
@@ -145,6 +145,27 @@ func TestNewParameter(t *testing.T) {
 		assert.True(t, param.Matches("--b"))
 		assert.True(t, param.Matches("-c"))
 		assert.False(t, param.Matches("-b"))
+	})
+	t.Run("delimtiter", func(t *testing.T) {
+		t.Run("on empty delimiter", func(t *testing.T) {
+			type foo struct {
+				b []string `cliced:""`
+			}
+			field := reflect.TypeOf(foo{}).Field(0)
+			param, err := newParameter(field)
+			assert.Nil(t, err)
+			assert.Equal(t, ",", param.Delimiter())
+		})
+
+		t.Run("on delimiter", func(t *testing.T) {
+			type foo struct {
+				a []int `cliced:"delimiter:!"`
+			}
+			field := reflect.TypeOf(foo{}).Field(0)
+			param, err := newParameter(field)
+			assert.Nil(t, err)
+			assert.Equal(t, param.Delimiter(), "!")
+		})
 	})
 	t.Run("Returns error", func(t *testing.T) {
 		field := reflect.TypeOf(foo{}).Field(0)
@@ -254,5 +275,76 @@ func TestSetterCallBacks(t *testing.T) {
 		callBack, err := param.SetterCallback(fooVar)
 		assert.Nil(t, callBack)
 		assert.NotNil(t, err)
+	})
+}
+
+func TestParamHelp(t *testing.T) {
+	stringContains := func(s string, substrs ...string) {
+		for _, substr := range substrs {
+			if !strings.Contains(s, substr) {
+				t.Error("expectected help to contain : ", substr, "\r\n", "help :\r\n", s)
+			}
+		}
+	}
+	stringDoesnotContain := func(s string, substrs ...string) {
+		for _, substr := range substrs {
+			if strings.Contains(s, substr) {
+				t.Error("expectected help to not contain : ", substr, "\r\n", "help :\r\n", s)
+			}
+		}
+	}
+	t.Run("bool type", func(t *testing.T) {
+		param := parameter{
+			name: "Bar",
+			tipe: reflect.TypeOf(true),
+		}
+		help := param.GetHelp()
+		stringContains(help, "--bar", "bool")
+		stringDoesnotContain(help, ":", "mandatory")
+	})
+	t.Run("string type", func(t *testing.T) {
+		param := parameter{
+			name:        "Bar",
+			tipe:        reflect.TypeOf(""),
+			description: "some string",
+		}
+		help := param.GetHelp()
+		stringContains(help, "--bar", "string", ":", "some string")
+		stringDoesnotContain(help, "mandatory")
+	})
+
+	t.Run("int type with description", func(t *testing.T) {
+		param := parameter{
+			name:        "Bar",
+			tipe:        reflect.TypeOf(""),
+			mandatory:   true,
+			description: "some int",
+		}
+		help := param.GetHelp()
+		stringContains(help, "--bar", "string", ":", "some int", "mandatory")
+	})
+	t.Run("string array ", func(t *testing.T) {
+		param := parameter{
+			name:      "Bar",
+			tipe:      reflect.TypeOf([]string{}),
+			delimiter: ",",
+			mandatory: true,
+		}
+		help := param.GetHelp()
+		stringContains(help, "--bar", "[]string", "delimiter", ",", "mandatory")
+	})
+	t.Run("string array type", func(t *testing.T) {
+		type foo struct {
+			Bar []int `cliced:"delimiter:,;mandatory;description:"`
+		}
+		param := parameter{
+			name:        "Bar",
+			tipe:        reflect.TypeOf([]int{}),
+			delimiter:   " ",
+			description: "some int array",
+			mandatory:   true,
+		}
+		help := param.GetHelp()
+		stringContains(help, "--bar", "[]int", "delimiter", "whitespace", "some int array", "mandatory")
 	})
 }
