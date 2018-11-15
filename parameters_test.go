@@ -1,6 +1,7 @@
 package cliced
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 
 type validStruct struct {
 	A int
-	B string `cliced:"mandatory;shortname:sb"`
+	B string `cliced:"mandatory;shortname:sb;default:3"`
 	C bool   `cliced:"mandatory;shortname:sc"`
 }
 
@@ -73,19 +74,11 @@ func TestFind(t *testing.T) {
 func TestParseArguments(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		testStruct := &validStruct{}
-		remaining, err := ParseArguments(testStruct, []string{"main", "hello", "--b", "world", "!"})
-		assert.Equal(t, []string{"hello", "!"}, remaining)
+		params, err := newParameters(testStruct)
 		assert.Nil(t, err)
-	})
-	t.Run("error at struct parsing", func(t *testing.T) {
-		type faultyStruct struct {
-			a int
-			b string `cliced:"something"`
-		}
-		testStruct := &faultyStruct{}
-		remaining, err := ParseArguments(testStruct, []string{"main", "--b", "hello"})
-		assert.Nil(t, remaining)
-		assert.NotNil(t, err)
+		remaining, err := params.ParseArguments(testStruct, []string{"main", "hello", "--b", "world", "!"})
+		assert.Nil(t, err)
+		assert.Equal(t, []string{"hello", "!"}, remaining)
 	})
 	t.Run("error at setter callback generating", func(t *testing.T) {
 		type faultyStruct struct {
@@ -93,7 +86,9 @@ func TestParseArguments(t *testing.T) {
 			b interface{}
 		}
 		testStruct := &faultyStruct{}
-		remaining, err := ParseArguments(testStruct, []string{"main", "--b", "hello"})
+		params, err := newParameters(testStruct)
+		assert.Nil(t, err)
+		remaining, err := params.ParseArguments(testStruct, []string{"main", "--b", "hello"})
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)
 	})
@@ -102,16 +97,40 @@ func TestParseArguments(t *testing.T) {
 			bar int
 		}
 		testStruct := &foo{}
-		remaining, err := ParseArguments(testStruct, []string{"main", "--bar", "notanumber"})
+		params, err := newParameters(testStruct)
+		assert.Nil(t, err)
+		remaining, err := params.ParseArguments(testStruct, []string{"main", "--bar", "notanumber"})
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)
 	})
 }
 
-func TestParse(t *testing.T) {
+func TestGetHelp(t *testing.T) {
 	testStruct := &validStruct{}
-	os.Args = []string{"main", "hello", "--b", "world", "!"}
-	remaining, err := Parse(testStruct)
-	assert.Equal(t, []string{"hello", "!"}, remaining)
+	params, err := newParameters(testStruct)
 	assert.Nil(t, err)
+	help := params.getHelp()
+	assert.Len(t, help, 3)
+	fmt.Println(help)
+}
+
+func TestParse(t *testing.T) {
+	t.Run("works", func(t *testing.T) {
+		testStruct := &validStruct{}
+		os.Args = []string{"main", "hello", "--b", "world", "!"}
+		remaining, err := Parse(testStruct)
+		assert.Equal(t, []string{"hello", "!"}, remaining)
+		assert.Nil(t, err)
+	})
+	t.Run("return err", func(t *testing.T) {
+		type faultyStruct struct {
+			a int
+			b string `cliced:"something"`
+		}
+		testStruct := &faultyStruct{}
+		os.Args = []string{"main", "hello", "-b", "world", "!"}
+		remaining, err := Parse(testStruct)
+		assert.Nil(t, remaining)
+		assert.NotNil(t, err)
+	})
 }

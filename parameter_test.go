@@ -54,22 +54,24 @@ func TestUsed(t *testing.T) {
 	assert.True(t, p.Used())
 }
 
-func TestfillParameter(t *testing.T) {
+func TestFillParameter(t *testing.T) {
 	t.Run("Works", func(t *testing.T) {
 		param := &parameter{}
 		assert.EqualValues(
 			t,
 			nil,
 			param.fillParameter("description:42"),
-			param.fillParameter("shortname:42"),
+			param.fillParameter("shortname:43"),
 			param.fillParameter("mandatory"),
 			param.fillParameter("delimiter:;"),
+			param.fillParameter("default:44"),
 		)
 		assert.Equal(t, parameter{
-			description: "42",
-			shortName:   "42",
-			mandatory:   true,
-			delimiter:   ";",
+			description:  "42",
+			shortName:    "43",
+			mandatory:    true,
+			delimiter:    ";",
+			defaultValue: "44",
 		}, *param)
 	})
 	t.Run("splitError", func(t *testing.T) {

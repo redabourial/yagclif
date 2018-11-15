@@ -72,6 +72,8 @@ type parameter struct {
 	// Type of the parameter only types
 	// bool,int,string,[]int,[]string are supported.
 	tipe reflect.Type
+	// Default Value
+	defaultValue string
 }
 
 // Getter for name.
@@ -88,6 +90,9 @@ func (p *parameter) Index() int {
 func (p *parameter) Mandatory() bool {
 	return p.mandatory
 }
+
+// Returns Cli names (text before the parameter)
+// as lowercase strings.
 func (p *parameter) CliNames() []string {
 	if p.hasShortName() {
 		return []string{
@@ -110,6 +115,7 @@ func (p *parameter) Split(s string) []string {
 	return strings.Split(s, p.delimiter)
 }
 
+// Returns the help of a parameter.
 func (p *parameter) GetHelp() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(strings.Join(p.CliNames(), " "))
@@ -130,11 +136,16 @@ func (p *parameter) GetHelp() string {
 		buffer.WriteString("(mandatory)")
 		buffer.WriteString(" ")
 	}
+	if p.defaultValue != "" {
+		// TODO test default value
+		buffer.WriteString("(default = ")
+		buffer.WriteString(p.description)
+		buffer.WriteString(")")
+	}
 	if p.description != "" {
 		buffer.WriteString(": ")
 		buffer.WriteString(p.description)
 	}
-	buffer.WriteString("\r\n")
 	return buffer.String()
 }
 
@@ -182,7 +193,6 @@ func (p *parameter) IsArrayType() bool {
 	return t == stringArrayType || t == intArrayType
 }
 
-// TODO comment better
 // Gets value of the object by reflect
 func (p *parameter) getValue(obj interface{}) reflect.Value {
 	objValue := reflect.ValueOf(obj)
@@ -194,35 +204,35 @@ func (p *parameter) getValue(obj interface{}) reflect.Value {
 }
 
 // Sets
-func (p *parameter) setBool(obj interface{}) func(value string) error {
-	p.getValue(obj).SetBool(true)
+func (p *parameter) setBool(target reflect.Value) func(value string) error {
+	target.SetBool(true)
 	return nil
 }
 
-func (p *parameter) setInt(obj interface{}) func(value string) error {
+func (p *parameter) setInt(target reflect.Value) func(value string) error {
 	return func(value string) error {
 		intValue, err := strconv.Atoi(value)
 		if err != nil {
 			return err
 		}
-		p.getValue(obj).SetInt(int64(intValue))
+		target.SetInt(int64(intValue))
 		return nil
 	}
 }
-func (p *parameter) setString(obj interface{}) func(value string) error {
+func (p *parameter) setString(target reflect.Value) func(value string) error {
 	return func(value string) error {
-		p.getValue(obj).SetString(value)
+		target.SetString(value)
 		return nil
 	}
 }
-func (p *parameter) setStringArray(obj interface{}) func(value string) error {
+func (p *parameter) setStringArray(target reflect.Value) func(value string) error {
 	return func(value string) error {
 		parts := p.Split(value)
-		p.getValue(obj).Set(reflect.ValueOf(parts))
+		target.Set(reflect.ValueOf(parts))
 		return nil
 	}
 }
-func (p *parameter) setIntArray(obj interface{}) func(value string) error {
+func (p *parameter) setIntArray(target reflect.Value) func(value string) error {
 	return func(value string) error {
 		parts := p.Split(value)
 		intParts := []int{}
@@ -233,27 +243,37 @@ func (p *parameter) setIntArray(obj interface{}) func(value string) error {
 			}
 			intParts = append(intParts, j)
 		}
-		p.getValue(obj).Set(reflect.ValueOf(intParts))
+		target.Set(reflect.ValueOf(intParts))
 		return nil
 	}
+}
+
+func (p *parameter) setterOnValue(target reflect.Value) func(value string) error {
+	switch p.tipe {
+	case reflect.TypeOf(true):
+		return p.setBool(target)
+	case reflect.TypeOf(1):
+		return p.setInt(target)
+	case reflect.TypeOf(""):
+		return p.setString(target)
+	case reflect.TypeOf([]string{}):
+		return p.setStringArray(target)
+	case reflect.TypeOf([]int{}):
+		return p.setIntArray(target)
+	}
+	return nil
 }
 
 // fills an object with the desired value
 func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, error) {
 	// TODO add parameter usage check
-	switch p.tipe {
-	case reflect.TypeOf(true):
-		return p.setBool(obj), nil
-	case reflect.TypeOf(1):
-		return p.setInt(obj), nil
-	case reflect.TypeOf(""):
-		return p.setString(obj), nil
-	case reflect.TypeOf([]string{}):
-		return p.setStringArray(obj), nil
-	case reflect.TypeOf([]int{}):
-		return p.setIntArray(obj), nil
+	target := p.getValue(obj)
+	setter := p.setterOnValue(target)
+	// no setter callback for bool type
+	if setter == nil && p.tipe != reflect.TypeOf(true) {
+		return nil, fmt.Errorf("Incompatible type")
 	}
-	return nil, fmt.Errorf("Incompatible type")
+	return setter, nil
 }
 
 // Changes the parameter by the value of the constraint.
@@ -272,6 +292,10 @@ func (param *parameter) fillParameter(constraint string) error {
 		return nil
 	case "mandatory":
 		param.mandatory = true
+		return nil
+	//TODO add default
+	case "default":
+		param.defaultValue = value
 		return nil
 	case "delimiter":
 		param.delimiter = value

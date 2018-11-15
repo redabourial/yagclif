@@ -1,7 +1,6 @@
 package cliced
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -54,19 +53,21 @@ func (params parameters) find(s string) *parameter {
 	}
 	return nil
 }
-func (params parameters) getHelp() string {
-	var buffer bytes.Buffer
+
+// Returns an array describing the parameters.
+func (params parameters) getHelp() []string {
+	var buffer []string
 	for _, param := range params {
-		buffer.WriteString(param.GetHelp())
+		buffer = append(buffer, param.GetHelp())
 	}
-	return buffer.String()
+	return buffer
 }
 
 // Fills the object with the argument.
 // This function only works if the obj
 // value is not nil.
 func (params parameters) ParseArguments(obj interface{}, args []string) ([]string, error) {
-	// TODO add multiple usages removers
+	// TODO add multiple usages
 	remainingArgs := []string{}
 	var callback func(string) error
 	for i := 1; i < len(args); i++ {
@@ -74,6 +75,7 @@ func (params parameters) ParseArguments(obj interface{}, args []string) ([]strin
 		param := params.find(arg)
 		if callback == nil {
 			if param != nil {
+				var err error
 				callback, err = param.SetterCallback(obj)
 				if err != nil {
 					return nil, err
@@ -92,6 +94,11 @@ func (params parameters) ParseArguments(obj interface{}, args []string) ([]strin
 	return remainingArgs, nil
 }
 
-func Parse(obj interface{}) ([]string, error) {
-	return ParseArguments(obj, os.Args)
+func Parse(obj interface{}) (remainingArgs []string, err error) {
+	params, err := newParameters(obj)
+	// TODO assign default values to object
+	if err != nil {
+		return nil, err
+	}
+	return params.ParseArguments(obj, os.Args)
 }
