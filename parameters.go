@@ -4,14 +4,21 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+
+	"github.com/potatomasterrace/catch"
 )
 
 type parameters []parameter
 
 // Returns the parameters from an object tags.
-func newParameters(obj interface{}) (parameters, error) {
+func newParameters(tipe reflect.Type) (parameters, error) {
 	params := parameters{}
-	tipe := reflect.Indirect(reflect.ValueOf(obj)).Type()
+	_, err := catch.Panic(func() {
+		tipe.NumField()
+	})
+	if err != nil {
+		return nil, fmt.Errorf("can not read fields of object \r\n hint: check that you're using a struct type ")
+	}
 	for i := 0; i < tipe.NumField(); i++ {
 		field := tipe.Field(i)
 		param, err := newParameter(field)
@@ -68,6 +75,7 @@ func (params parameters) getHelp() []string {
 // value is not nil.
 func (params parameters) ParseArguments(obj interface{}, args []string) ([]string, error) {
 	// TODO add multiple usages
+	// TODO assign defaults
 	remainingArgs := []string{}
 	var callback func(string) error
 	for i := 1; i < len(args); i++ {
@@ -95,7 +103,8 @@ func (params parameters) ParseArguments(obj interface{}, args []string) ([]strin
 }
 
 func Parse(obj interface{}) (remainingArgs []string, err error) {
-	params, err := newParameters(obj)
+	tipe := reflect.TypeOf(obj).Elem()
+	params, err := newParameters(tipe)
 	// TODO assign default values to object
 	if err != nil {
 		return nil, err

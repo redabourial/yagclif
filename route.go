@@ -9,9 +9,8 @@ import (
 
 type route struct {
 	description string
-	parameters  parameters
-	// Panicky callback
-	formatedCallBack func([]string) error
+	callback    func(args []string) error
+	customType  reflect.Type
 }
 
 // Return the type of the custom argument
@@ -20,19 +19,24 @@ func getCustomCallBackType(callBack interface{}) (reflect.Type, error) {
 		return nil, fmt.Errorf("callback value cannot be nil")
 	}
 	callBackTipe := reflect.TypeOf(callBack)
-	switch callBackTipe.NumIn() {
-	case 1:
-		// instance of the expected type []string
-		if callBackTipe.AssignableTo(reflect.TypeOf(func([]string) {})) {
-			return nil, nil
-		}
-	case 2:
-		if callBackTipe.In(1) == reflect.TypeOf([]string{}) {
-			return callBackTipe.In(0), nil
+	// TODO find a better way to check that it is a function
+	if callBackTipe.Kind().String() == "func" {
+		switch callBackTipe.NumIn() {
+		case 1:
+			// instance of the expected type []string
+			if callBackTipe.AssignableTo(reflect.TypeOf(func([]string) {})) {
+				return nil, nil
+			}
+		case 2:
+			if callBackTipe.In(1) == reflect.TypeOf([]string{}) {
+				return callBackTipe.In(0), nil
+			}
 		}
 	}
-	return nil, fmt.Errorf("expected type func([]string) or func(SomeStruct,[]string) but instead found %s",
-		callBackTipe)
+	return nil, fmt.Errorf(
+		"expected type func([]string) or func(SomeStruct,[]string) but instead found %s",
+		callBackTipe,
+	)
 }
 
 func getSimpleCallBack(callBackFunctionValue reflect.Value) func(args []string) error {
@@ -49,8 +53,9 @@ func getSimpleCallBack(callBackFunctionValue reflect.Value) func(args []string) 
 	}
 }
 
-func getCustomCallBack(firstParamInstance reflect.Value, callBackFunctionValue reflect.Value) (func(args []string) error, error) {
-	params, err := newParameters(firstParamInstance)
+func getCustomCallBack(callBackFunctionValue reflect.Value, callBackCustomType reflect.Type) (func(args []string) error, error) {
+	firstParamInstance := reflect.New(callBackCustomType).Elem().Interface()
+	params, err := newParameters(callBackCustomType)
 	if err != nil {
 		return nil, err
 	}
@@ -60,41 +65,45 @@ func getCustomCallBack(firstParamInstance reflect.Value, callBackFunctionValue r
 			return err
 		}
 		arguments := make([]reflect.Value, 2)
-		arguments[0] = reflect.ValueOf(params)
+		arguments[0] = reflect.ValueOf(firstParamInstance)
 		arguments[1] = reflect.ValueOf(remainingArgs)
-		callBackFunctionValue.Call(arguments)
+		_, callError := catch.Panic(func() {
+			callBackFunctionValue.Call(arguments)
+		})
+		if callError != nil {
+			return fmt.Errorf("%s", callError)
+		}
 		return nil
 	}, nil
 }
 
-func formatCallBack(callBack interface{}) (startRoute func(args []string) error, err error) {
+func formatCallBack(callBackFunctionValue reflect.Value, callBackArgType reflect.Type) (startRoute func(args []string) error, err error) {
+	if callBackArgType == nil {
+		return getSimpleCallBack(callBackFunctionValue), nil
+	}
+	return getCustomCallBack(callBackFunctionValue, callBackArgType)
+}
+
+func newRoute(description string, callBack interface{}) (*route, error) {
 	callBackFunctionValue := reflect.ValueOf(callBack)
 	callBackArgType, err := getCustomCallBackType(callBack)
 	if err != nil {
 		return nil, err
 	}
-	if callBackArgType == nil {
-		return getSimpleCallBack(callBackFunctionValue), nil
-	}
-	firstParamInstance := reflect.New(callBackArgType)
-	return getCustomCallBack(firstParamInstance, callBackFunctionValue)
-}
-
-func newRoute(description string, callBack interface{}) (*route, error) {
-	formatedCallBack, err := formatCallBack(callBack)
+	formatedCallback, err := formatCallBack(callBackFunctionValue, callBackArgType)
 	if err != nil {
 		return nil, err
 	}
 	return &route{
-		description:      description,
-		formatedCallBack: formatedCallBack,
+		description: description,
+		callback:    formatedCallback,
+		customType:  callBackArgType,
 	}, nil
 }
 
-func (r route) getHelp() string {
-	return ""
-}
-
-func (r route) execute(args []string) {
-
+func (r *route) run(args []string) error {
+	if r.callback != nil {
+		return r.callback(args)
+	}
+	return fmt.Errorf("callback not defined")
 }

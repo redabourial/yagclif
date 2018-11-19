@@ -1,8 +1,8 @@
 package cliced
 
 import (
-	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,13 +14,16 @@ type validStruct struct {
 	C bool   `cliced:"mandatory;shortname:sc"`
 }
 
+var validStructType = reflect.TypeOf(validStruct{})
+
 func TestNewParameters(t *testing.T) {
 	type faultyStruct struct {
 		a int
 		b string `cliced:"something"`
 	}
+	var faultyStructType = reflect.TypeOf(faultyStruct{})
 	t.Run("returns value", func(t *testing.T) {
-		params, err := newParameters(&validStruct{})
+		params, err := newParameters(validStructType)
 		assert.Nil(t, err)
 		assert.Equal(t, 3, len(params))
 		assert.Equal(t, "A", params[0].Name())
@@ -33,14 +36,14 @@ func TestNewParameters(t *testing.T) {
 		assert.Equal(t, 2, params[2].Index())
 	})
 	t.Run("returns error", func(t *testing.T) {
-		params, err := newParameters(faultyStruct{})
+		params, err := newParameters(faultyStructType)
 		assert.NotNil(t, err)
 		assert.Nil(t, params)
 	})
 }
 func TestCheckValidty(t *testing.T) {
 	t.Run("no duplicates", func(t *testing.T) {
-		params, err := newParameters(&validStruct{})
+		params, err := newParameters(validStructType)
 		assert.Nil(t, err)
 		assert.Nil(t, params.checkValidity())
 	})
@@ -59,7 +62,7 @@ func TestCheckValidty(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	params, err := newParameters(&validStruct{})
+	params, err := newParameters(validStructType)
 	assert.Nil(t, err)
 	t.Run("finds", func(t *testing.T) {
 		param := params.find("--a")
@@ -73,9 +76,9 @@ func TestFind(t *testing.T) {
 
 func TestParseArguments(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
-		testStruct := &validStruct{}
-		params, err := newParameters(testStruct)
+		params, err := newParameters(validStructType)
 		assert.Nil(t, err)
+		testStruct := &validStruct{}
 		remaining, err := params.ParseArguments(testStruct, []string{"main", "hello", "--b", "world", "!"})
 		assert.Nil(t, err)
 		assert.Equal(t, []string{"hello", "!"}, remaining)
@@ -85,8 +88,9 @@ func TestParseArguments(t *testing.T) {
 			a int
 			b interface{}
 		}
+		faultyStructType := reflect.TypeOf(faultyStruct{})
 		testStruct := &faultyStruct{}
-		params, err := newParameters(testStruct)
+		params, err := newParameters(faultyStructType)
 		assert.Nil(t, err)
 		remaining, err := params.ParseArguments(testStruct, []string{"main", "--b", "hello"})
 		assert.Nil(t, remaining)
@@ -96,8 +100,9 @@ func TestParseArguments(t *testing.T) {
 		type foo struct {
 			bar int
 		}
+		fooType := reflect.TypeOf(foo{})
 		testStruct := &foo{}
-		params, err := newParameters(testStruct)
+		params, err := newParameters(fooType)
 		assert.Nil(t, err)
 		remaining, err := params.ParseArguments(testStruct, []string{"main", "--bar", "notanumber"})
 		assert.Nil(t, remaining)
@@ -106,12 +111,10 @@ func TestParseArguments(t *testing.T) {
 }
 
 func TestGetHelp(t *testing.T) {
-	testStruct := &validStruct{}
-	params, err := newParameters(testStruct)
+	params, err := newParameters(validStructType)
 	assert.Nil(t, err)
 	help := params.getHelp()
 	assert.Len(t, help, 3)
-	fmt.Println(help)
 }
 
 func TestParse(t *testing.T) {
@@ -119,8 +122,8 @@ func TestParse(t *testing.T) {
 		testStruct := &validStruct{}
 		os.Args = []string{"main", "hello", "--b", "world", "!"}
 		remaining, err := Parse(testStruct)
-		assert.Equal(t, []string{"hello", "!"}, remaining)
 		assert.Nil(t, err)
+		assert.Equal(t, []string{"hello", "!"}, remaining)
 	})
 	t.Run("return err", func(t *testing.T) {
 		type faultyStruct struct {

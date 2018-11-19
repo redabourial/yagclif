@@ -277,7 +277,7 @@ func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, e
 }
 
 // Changes the parameter by the value of the constraint.
-func (param *parameter) fillParameter(constraint string) error {
+func (p *parameter) fillParameter(constraint string) error {
 	splittedConstraint, err := splitConstraint(constraint)
 	key, value := splittedConstraint.key, splittedConstraint.value
 	if err != nil {
@@ -285,20 +285,19 @@ func (param *parameter) fillParameter(constraint string) error {
 	}
 	switch key {
 	case "description":
-		param.description = value
+		p.description = value
 		return nil
 	case "shortname":
-		param.shortName = value
+		p.shortName = value
 		return nil
 	case "mandatory":
-		param.mandatory = true
+		p.mandatory = true
 		return nil
-	//TODO add default
 	case "default":
-		param.defaultValue = value
+		p.defaultValue = value
 		return nil
 	case "delimiter":
-		param.delimiter = value
+		p.delimiter = value
 		return nil
 	}
 	return fmt.Errorf("unknown key %s", splittedConstraint.value)

@@ -11,28 +11,34 @@ func indent(s []string) []string {
 	return s
 }
 
-type App map[string]*route
+type App struct {
+	name        string
+	description string
+	routes      map[string]*route
+}
 
 func (app App) AddRoute(name string, description string, callback interface{}) error {
-	if app[name] != nil {
+	if app.routes[name] != nil {
 		return fmt.Errorf(
 			"route %s already used",
 			name,
 		)
 	}
-	// TODO add route initialization
-	return nil
+	route, err := newRoute(description, callback)
+	if err != nil {
+		app.routes[name] = route
+	}
+	return err
 }
 
 func (app *App) Run() {
-
+	// args := os.Args
 }
 
 func (app *App) GetHelp() string {
 	return ""
 }
 
-func NewCliApp(name string, description string) App {
-
+func NewCliApp(name string, description string) *App {
 	return nil
 }

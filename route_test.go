@@ -7,11 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type SomeStruct struct {
+	A int `cliced:"mandatory"`
+	B string
+}
+
 func TestGetCustomCallBackType(t *testing.T) {
-	type SomeStruct struct {
-		a int
-		b string
-	}
 	t.Run("args[] callback", func(t *testing.T) {
 		argsCallback := func(args []string) {}
 		tipe, err := getCustomCallBackType(argsCallback)
@@ -38,7 +39,7 @@ func TestGetCustomCallBackType(t *testing.T) {
 }
 
 func TestGetSimpleCallBack(t *testing.T) {
-	var passedArgs []string = nil
+	var passedArgs []string
 	t.Run("works", func(t *testing.T) {
 		stub := func(args []string) {
 			passedArgs = args
@@ -61,12 +62,65 @@ func TestGetSimpleCallBack(t *testing.T) {
 
 func TestGetCustomCallBack(t *testing.T) {
 	t.Run("new parameters error", func(t *testing.T) {
-
+		callbackFunc := reflect.ValueOf(func([]string) {})
+		callback, err := getCustomCallBack(callbackFunc, reflect.TypeOf("hello"))
+		assert.NotNil(t, err)
+		assert.Nil(t, callback)
 	})
-	t.Run("simple callback", func(t *testing.T) {
-
+	// Testing
+	t.Run("callBack works", func(t *testing.T) {
+		var passedValue *SomeStruct = nil
+		callbackFunc := reflect.ValueOf(func(ss SomeStruct, remainingArgs []string) {
+			passedValue = &ss
+		})
+		callback, err := getCustomCallBack(callbackFunc, reflect.TypeOf(SomeStruct{}))
+		assert.Nil(t, err)
+		assert.Nil(t, passedValue)
+		err = callback([]string{})
+		assert.Nil(t, err)
+		assert.NotNil(t, passedValue)
 	})
-	t.Run("error", func(t *testing.T) {
-
+	t.Run("callBack error", func(t *testing.T) {
+		callbackFunc := reflect.ValueOf(func(i int, remainingArgs []string) {
+		})
+		callback, err := getCustomCallBack(callbackFunc, reflect.TypeOf(SomeStruct{}))
+		assert.Nil(t, err)
+		err = callback([]string{})
+		assert.NotNil(t, err)
 	})
 }
+
+func TestFormatCallBack(t *testing.T) {
+	t.Run("getSimpleCallBack", func(t *testing.T) {
+		callbackFunc := reflect.ValueOf(func(remainingArgs []string) {})
+		callback, err := formatCallBack(callbackFunc, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, reflect.TypeOf(callback), reflect.TypeOf(func([]string) error { return nil }))
+	})
+	t.Run("getCustomCallBack", func(t *testing.T) {
+		callbackFunc := reflect.ValueOf(func(ss SomeStruct, remainingArgs []string) {})
+		callback, err := formatCallBack(callbackFunc, reflect.TypeOf(SomeStruct{}))
+		assert.Nil(t, err)
+		assert.Equal(t, reflect.TypeOf(callback), reflect.TypeOf(func([]string) error { return nil }))
+	})
+}
+
+func TestNewRoute(t *testing.T) {
+	t.Run("works", func(t *testing.T) {
+		route, err := newRoute("hello", func(ss SomeStruct, remainingArgs []string) {})
+		assert.Nil(t, err)
+		assert.NotNil(t, route)
+	})
+	t.Run("getCustomCallBackType error", func(t *testing.T) {
+		route, err := newRoute("hello", nil)
+		assert.Nil(t, route)
+		assert.NotNil(t, err)
+	})
+	t.Run("getCustomCallBackType error", func(t *testing.T) {
+		route, err := newRoute("hello", func(i int, remainingArgs []string) {})
+		assert.Nil(t, route)
+		assert.NotNil(t, err)
+	})
+}
+
+// TODO test Run
