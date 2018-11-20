@@ -1,4 +1,4 @@
-package cliced
+package yagclif
 
 import (
 	"fmt"
@@ -54,18 +54,18 @@ func getSimpleCallBack(callBackFunctionValue reflect.Value) func(args []string) 
 }
 
 func getCustomCallBack(callBackFunctionValue reflect.Value, callBackCustomType reflect.Type) (func(args []string) error, error) {
-	firstParamInstance := reflect.New(callBackCustomType).Elem().Interface()
 	params, err := newParameters(callBackCustomType)
 	if err != nil {
 		return nil, err
 	}
+	firstParamInstance := reflect.New(callBackCustomType)
 	return func(args []string) error {
-		remainingArgs, err := params.ParseArguments(firstParamInstance, args)
+		remainingArgs, err := params.ParseArguments(firstParamInstance.Interface(), args)
 		if err != nil {
 			return err
 		}
 		arguments := make([]reflect.Value, 2)
-		arguments[0] = reflect.ValueOf(firstParamInstance)
+		arguments[0] = firstParamInstance.Elem()
 		arguments[1] = reflect.ValueOf(remainingArgs)
 		_, callError := catch.Panic(func() {
 			callBackFunctionValue.Call(arguments)
@@ -106,4 +106,15 @@ func (r *route) run(args []string) error {
 		return r.callback(args)
 	}
 	return fmt.Errorf("callback not defined")
+}
+
+func (r *route) getHelp() []string {
+	if r.customType == nil {
+		return []string{}
+	}
+	parameters, err := newParameters(r.customType)
+	if err != nil {
+		return []string{"Could not parse parameters"}
+	}
+	return parameters.getHelp()
 }

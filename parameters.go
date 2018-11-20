@@ -1,4 +1,4 @@
-package cliced
+package yagclif
 
 import (
 	"fmt"
@@ -40,7 +40,7 @@ func (params parameters) checkValidity() error {
 			if conflictingParam != nil {
 				return fmt.Errorf(
 					"conflict for cli name %s struct fields %s and %s",
-					name, param.Name(), conflictingParam.Name(),
+					name, param.name, conflictingParam.name,
 				)
 			}
 			existingNames[name] = &param
@@ -78,8 +78,7 @@ func (params parameters) ParseArguments(obj interface{}, args []string) ([]strin
 	// TODO assign defaults
 	remainingArgs := []string{}
 	var callback func(string) error
-	for i := 1; i < len(args); i++ {
-		arg := args[i]
+	for _, arg := range args {
 		param := params.find(arg)
 		if callback == nil {
 			if param != nil {
@@ -105,7 +104,6 @@ func (params parameters) ParseArguments(obj interface{}, args []string) ([]strin
 func Parse(obj interface{}) (remainingArgs []string, err error) {
 	tipe := reflect.TypeOf(obj).Elem()
 	params, err := newParameters(tipe)
-	// TODO assign default values to object
 	if err != nil {
 		return nil, err
 	}

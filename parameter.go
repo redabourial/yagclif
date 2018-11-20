@@ -1,4 +1,4 @@
-package cliced
+package yagclif
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 )
 
 // Name of the tag to parse.
-const tagName = "cliced"
+const tagName = "yagclif"
 
 // Value to prefix to name value.
 const namePrefix = "--"
@@ -76,21 +76,6 @@ type parameter struct {
 	defaultValue string
 }
 
-// Getter for name.
-func (p *parameter) Name() string {
-	return p.name
-}
-
-// Getter for index.
-func (p *parameter) Index() int {
-	return p.index
-}
-
-// Getter for mandatory.
-func (p *parameter) Mandatory() bool {
-	return p.mandatory
-}
-
 // Returns Cli names (text before the parameter)
 // as lowercase strings.
 func (p *parameter) CliNames() []string {
@@ -103,11 +88,6 @@ func (p *parameter) CliNames() []string {
 	return []string{
 		fmt.Sprint(namePrefix, strings.ToLower(p.name)),
 	}
-}
-
-// Getter for delimiter.
-func (p *parameter) Delimiter() string {
-	return p.delimiter
 }
 
 // Splits a string by the delimiter.
@@ -132,14 +112,13 @@ func (p *parameter) GetHelp() string {
 			buffer.WriteString(" ")
 		}
 	}
-	if p.Mandatory() {
+	if p.mandatory {
 		buffer.WriteString("(mandatory)")
 		buffer.WriteString(" ")
 	}
 	if p.defaultValue != "" {
-		// TODO test default value
 		buffer.WriteString("(default = ")
-		buffer.WriteString(p.description)
+		buffer.WriteString(p.defaultValue)
 		buffer.WriteString(")")
 	}
 	if p.description != "" {
@@ -149,25 +128,13 @@ func (p *parameter) GetHelp() string {
 	return buffer.String()
 }
 
-// Getter for tipe.
-func (p *parameter) Type() reflect.Type {
-	return p.tipe
-}
-
 // Returns if a shortName has been defined.
 func (p *parameter) hasShortName() bool {
 	return p.shortName != ""
 }
 
-// Getter for description.
-func (p *parameter) Description() string {
-	return p.description
-}
-
 // Returns if the parameter matches the string.
 func (p *parameter) Matches(s string) bool {
-	// TODO rewrite using the
-	// getCliNames method
 	for _, name := range p.CliNames() {
 		if name == s {
 			return true

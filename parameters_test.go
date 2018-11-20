@@ -1,4 +1,4 @@
-package cliced
+package yagclif
 
 import (
 	"os"
@@ -10,8 +10,8 @@ import (
 
 type validStruct struct {
 	A int
-	B string `cliced:"mandatory;shortname:sb;default:3"`
-	C bool   `cliced:"mandatory;shortname:sc"`
+	B string `yagclif:"mandatory;shortname:sb;description:foo;default:3"`
+	C bool   `yagclif:"mandatory;shortname:sc"`
 }
 
 var validStructType = reflect.TypeOf(validStruct{})
@@ -19,21 +19,23 @@ var validStructType = reflect.TypeOf(validStruct{})
 func TestNewParameters(t *testing.T) {
 	type faultyStruct struct {
 		a int
-		b string `cliced:"something"`
+		b string `yagclif:"something"`
 	}
 	var faultyStructType = reflect.TypeOf(faultyStruct{})
 	t.Run("returns value", func(t *testing.T) {
 		params, err := newParameters(validStructType)
 		assert.Nil(t, err)
 		assert.Equal(t, 3, len(params))
-		assert.Equal(t, "A", params[0].Name())
-		assert.Equal(t, 0, params[0].Index())
-		assert.Equal(t, "B", params[1].Name())
-		assert.True(t, params[1].Mandatory())
-		assert.Equal(t, 1, params[1].Index())
-		assert.Equal(t, "C", params[2].Name())
-		assert.True(t, params[2].Mandatory())
-		assert.Equal(t, 2, params[2].Index())
+		assert.Equal(t, "A", params[0].name)
+		assert.Equal(t, 0, params[0].index)
+		assert.Equal(t, "B", params[1].name)
+		assert.Equal(t, "foo", params[1].description)
+		assert.Equal(t, "3", params[1].defaultValue)
+		assert.True(t, params[1].mandatory)
+		assert.Equal(t, 1, params[1].index)
+		assert.Equal(t, "C", params[2].name)
+		assert.True(t, params[2].mandatory)
+		assert.Equal(t, 2, params[2].index)
 	})
 	t.Run("returns error", func(t *testing.T) {
 		params, err := newParameters(faultyStructType)
@@ -78,10 +80,13 @@ func TestParseArguments(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		params, err := newParameters(validStructType)
 		assert.Nil(t, err)
-		testStruct := &validStruct{}
-		remaining, err := params.ParseArguments(testStruct, []string{"main", "hello", "--b", "world", "!"})
+		testStruct := reflect.New(validStructType).Interface()
+		remaining, err := params.ParseArguments(testStruct, []string{"hello", "--b", "world", "!"})
 		assert.Nil(t, err)
 		assert.Equal(t, []string{"hello", "!"}, remaining)
+		assert.Equal(t, &validStruct{
+			B: "world",
+		}, testStruct)
 	})
 	t.Run("error at setter callback generating", func(t *testing.T) {
 		type faultyStruct struct {
@@ -92,7 +97,7 @@ func TestParseArguments(t *testing.T) {
 		testStruct := &faultyStruct{}
 		params, err := newParameters(faultyStructType)
 		assert.Nil(t, err)
-		remaining, err := params.ParseArguments(testStruct, []string{"main", "--b", "hello"})
+		remaining, err := params.ParseArguments(testStruct, []string{"--b", "hello"})
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)
 	})
@@ -104,13 +109,13 @@ func TestParseArguments(t *testing.T) {
 		testStruct := &foo{}
 		params, err := newParameters(fooType)
 		assert.Nil(t, err)
-		remaining, err := params.ParseArguments(testStruct, []string{"main", "--bar", "notanumber"})
+		remaining, err := params.ParseArguments(testStruct, []string{"--bar", "notanumber"})
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)
 	})
 }
 
-func TestGetHelp(t *testing.T) {
+func TestParamsGetHelp(t *testing.T) {
 	params, err := newParameters(validStructType)
 	assert.Nil(t, err)
 	help := params.getHelp()
@@ -120,7 +125,7 @@ func TestGetHelp(t *testing.T) {
 func TestParse(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		testStruct := &validStruct{}
-		os.Args = []string{"main", "hello", "--b", "world", "!"}
+		os.Args = []string{"hello", "--b", "world", "!"}
 		remaining, err := Parse(testStruct)
 		assert.Nil(t, err)
 		assert.Equal(t, []string{"hello", "!"}, remaining)
@@ -128,10 +133,10 @@ func TestParse(t *testing.T) {
 	t.Run("return err", func(t *testing.T) {
 		type faultyStruct struct {
 			a int
-			b string `cliced:"something"`
+			b string `yagclif:"something"`
 		}
 		testStruct := &faultyStruct{}
-		os.Args = []string{"main", "hello", "-b", "world", "!"}
+		os.Args = []string{"hello", "-b", "world", "!"}
 		remaining, err := Parse(testStruct)
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)

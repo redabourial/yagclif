@@ -1,4 +1,4 @@
-package cliced
+package yagclif
 
 import (
 	"reflect"
@@ -8,7 +8,7 @@ import (
 )
 
 type SomeStruct struct {
-	A int `cliced:"mandatory"`
+	A int `yagclif:"mandatory"`
 	B string
 }
 
@@ -67,18 +67,20 @@ func TestGetCustomCallBack(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.Nil(t, callback)
 	})
-	// Testing
 	t.Run("callBack works", func(t *testing.T) {
-		var passedValue *SomeStruct = nil
+		var passedValue *SomeStruct
 		callbackFunc := reflect.ValueOf(func(ss SomeStruct, remainingArgs []string) {
 			passedValue = &ss
 		})
 		callback, err := getCustomCallBack(callbackFunc, reflect.TypeOf(SomeStruct{}))
 		assert.Nil(t, err)
 		assert.Nil(t, passedValue)
-		err = callback([]string{})
+		err = callback([]string{"--a", "1", "hello"})
 		assert.Nil(t, err)
 		assert.NotNil(t, passedValue)
+		assert.Equal(t, &SomeStruct{
+			A: 1,
+		}, passedValue)
 	})
 	t.Run("callBack error", func(t *testing.T) {
 		callbackFunc := reflect.ValueOf(func(i int, remainingArgs []string) {

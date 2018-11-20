@@ -1,4 +1,4 @@
-package cliced
+package yagclif
 
 import (
 	"reflect"
@@ -7,26 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGetters(t *testing.T) {
-	const errorMsg = "getter returns wrong value"
-	p := parameter{
-		name:        "name",
-		shortName:   "shortName",
-		index:       42,
-		description: "description",
-		mandatory:   true,
-		used:        false,
-		delimiter:   "-",
-		tipe:        reflect.TypeOf(42),
-	}
-	assert.Equal(t, "name", p.Name(), errorMsg)
-	assert.Equal(t, 42, p.Index(), errorMsg)
-	assert.Equal(t, true, p.Mandatory(), errorMsg)
-	assert.Equal(t, "-", p.Delimiter(), errorMsg)
-	assert.Equal(t, "description", p.Description(), errorMsg)
-	assert.Equal(t, reflect.TypeOf(42), p.Type(), errorMsg)
-}
 
 func TestSplit(t *testing.T) {
 	p := parameter{
@@ -135,15 +115,14 @@ func TestMatches(t *testing.T) {
 }
 func TestNewParameter(t *testing.T) {
 	type foo struct {
-		a int `cliced:"something"`
-		b int `cliced:"mandatory;shortname:c"`
+		a int `yagclif:"something"`
+		b int `yagclif:"mandatory;shortname:c"`
 	}
-
 	t.Run("Works", func(t *testing.T) {
 		field := reflect.TypeOf(foo{}).Field(1)
 		param, err := newParameter(field)
 		assert.Nil(t, err)
-		assert.True(t, param.Mandatory())
+		assert.True(t, param.mandatory)
 		assert.True(t, param.Matches("--b"))
 		assert.True(t, param.Matches("-c"))
 		assert.False(t, param.Matches("-b"))
@@ -151,22 +130,22 @@ func TestNewParameter(t *testing.T) {
 	t.Run("delimtiter", func(t *testing.T) {
 		t.Run("on empty delimiter", func(t *testing.T) {
 			type foo struct {
-				b []string `cliced:""`
+				b []string `yagclif:""`
 			}
 			field := reflect.TypeOf(foo{}).Field(0)
 			param, err := newParameter(field)
 			assert.Nil(t, err)
-			assert.Equal(t, ",", param.Delimiter())
+			assert.Equal(t, ",", param.delimiter)
 		})
 
 		t.Run("on delimiter", func(t *testing.T) {
 			type foo struct {
-				a []int `cliced:"delimiter:!"`
+				a []int `yagclif:"delimiter:!"`
 			}
 			field := reflect.TypeOf(foo{}).Field(0)
 			param, err := newParameter(field)
 			assert.Nil(t, err)
-			assert.Equal(t, param.Delimiter(), "!")
+			assert.Equal(t, param.delimiter, "!")
 		})
 	})
 	t.Run("Returns error", func(t *testing.T) {
@@ -196,8 +175,8 @@ func TestSetterCallBacks(t *testing.T) {
 		Bar bool
 		Car string
 		Dar int
-		Ear []string `cliced:"delimiter:,"`
-		Far []int    `cliced:"delimiter:,"`
+		Ear []string `yagclif:"delimiter:,"`
+		Far []int    `yagclif:"delimiter:,"`
 		Gar interface{}
 	}
 	t.Run("Set Bool", func(t *testing.T) {
@@ -337,7 +316,7 @@ func TestParamHelp(t *testing.T) {
 	})
 	t.Run("string array type", func(t *testing.T) {
 		type foo struct {
-			Bar []int `cliced:"delimiter:,;mandatory;description:"`
+			Bar []int `yagclif:"delimiter:,;mandatory;description:"`
 		}
 		param := parameter{
 			name:        "Bar",
