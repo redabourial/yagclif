@@ -27,12 +27,6 @@ func TestHasShortName(t *testing.T) {
 		assert.False(t, p.hasShortName())
 	})
 }
-func TestUsed(t *testing.T) {
-	p := parameter{}
-	assert.False(t, p.Used())
-	p.Use()
-	assert.True(t, p.Used())
-}
 
 func TestFillParameter(t *testing.T) {
 	t.Run("Works", func(t *testing.T) {
@@ -170,7 +164,6 @@ func TestGetValue(t *testing.T) {
 }
 
 func TestSetterCallBacks(t *testing.T) {
-	//TODO organise by complexity
 	type foo struct {
 		Bar bool
 		Car string
@@ -234,6 +227,7 @@ func TestSetterCallBacks(t *testing.T) {
 		t.Run("works", func(t *testing.T) {
 			fooVar := &foo{}
 			callBack, err := param.SetterCallback(fooVar)
+			param.used = false
 			assert.Nil(t, err)
 			err = callBack("1,2,3")
 			assert.Nil(t, err)
@@ -242,15 +236,27 @@ func TestSetterCallBacks(t *testing.T) {
 		t.Run("returns error", func(t *testing.T) {
 			fooVar := &foo{}
 			callBack, err := param.SetterCallback(fooVar)
+			param.used = false
 			assert.Nil(t, err)
 			err = callBack("hello world")
 			assert.Nil(t, fooVar.Far)
 			assert.NotNil(t, err)
 		})
 	})
+	t.Run("checks for multiple usages", func(t *testing.T) {
+		field := reflect.TypeOf(foo{}).Field(5)
+		param, err := newParameter(field)
+		param.used = true
+		assert.Nil(t, err)
+		fooVar := &foo{}
+		callBack, err := param.SetterCallback(fooVar)
+		assert.Nil(t, callBack)
+		assert.NotNil(t, err)
+	})
 	t.Run("returns error", func(t *testing.T) {
 		field := reflect.TypeOf(foo{}).Field(5)
 		param, err := newParameter(field)
+		param.used = false
 		assert.Nil(t, err)
 		fooVar := &foo{}
 		callBack, err := param.SetterCallback(fooVar)

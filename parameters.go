@@ -8,12 +8,12 @@ import (
 	"github.com/potatomasterrace/catch"
 )
 
-type parameters []parameter
+type parameters []*parameter
 
 // Returns the parameters from an object tags.
 func newParameters(tipe reflect.Type) (parameters, error) {
 	params := parameters{}
-	_, err := catch.Panic(func() {
+	err := catch.CatchError(func() {
 		tipe.NumField()
 	})
 	if err != nil {
@@ -25,16 +25,19 @@ func newParameters(tipe reflect.Type) (parameters, error) {
 		if err != nil {
 			return nil, err
 		}
-		params = append(params, *param)
+		params = append(params, param)
+	}
+	if err = params.checkValidity(); err != nil {
+		return nil, err
 	}
 	return params, nil
 }
 
 // Validates that no conflict exists between parameter names.
 // and that every array parameter has a delimiter
-func (params parameters) checkValidity() error {
+func (params *parameters) checkValidity() error {
 	existingNames := make(map[string]*parameter, 0)
-	for _, param := range params {
+	for _, param := range *params {
 		for _, name := range param.CliNames() {
 			conflictingParam := existingNames[name]
 			if conflictingParam != nil {
@@ -43,39 +46,55 @@ func (params parameters) checkValidity() error {
 					name, param.name, conflictingParam.name,
 				)
 			}
-			existingNames[name] = &param
+			existingNames[name] = param
 		}
 	}
 
 	return nil
 }
 
+func (params *parameters) checkForMissingMandatory() error {
+	for _, param := range *params {
+		if param.mandatory && !param.used {
+			return fmt.Errorf("missing argument %s for %s", param.CliNames(), param.name)
+		}
+	}
+	return nil
+}
+
 // Finds a parameter in the array by cli names :
 // -name or --shortname.
-func (params parameters) find(s string) *parameter {
-	for _, param := range params {
+func (params *parameters) find(s string) *parameter {
+	for _, param := range *params {
 		if param.Matches(s) {
-			return &param
+			return param
 		}
 	}
 	return nil
 }
 
 // Returns an array describing the parameters.
-func (params parameters) getHelp() []string {
+func (params *parameters) getHelp() []string {
 	var buffer []string
-	for _, param := range params {
+	for _, param := range *params {
 		buffer = append(buffer, param.GetHelp())
 	}
 	return buffer
 }
 
+func (params *parameters) assignDefaults(obj interface{}) error {
+	for _, param := range *params {
+		_, err := param.setDefault(obj)
+		return err
+	}
+	return nil
+}
+
 // Fills the object with the argument.
 // This function only works if the obj
 // value is not nil.
-func (params parameters) ParseArguments(obj interface{}, args []string) ([]string, error) {
-	// TODO add multiple usages
-	// TODO assign defaults
+func (params *parameters) ParseArguments(obj interface{}, args []string) ([]string, error) {
+	params.assignDefaults(obj)
 	remainingArgs := []string{}
 	var callback func(string) error
 	for _, arg := range args {
@@ -97,6 +116,9 @@ func (params parameters) ParseArguments(obj interface{}, args []string) ([]strin
 			}
 			callback = nil
 		}
+	}
+	if err := params.checkForMissingMandatory(); err != nil {
+		return nil, err
 	}
 	return remainingArgs, nil
 }

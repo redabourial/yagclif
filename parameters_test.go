@@ -10,8 +10,8 @@ import (
 
 type validStruct struct {
 	A int
-	B string `yagclif:"mandatory;shortname:sb;description:foo;default:3"`
-	C bool   `yagclif:"mandatory;shortname:sc"`
+	B string `yagclif:"shortname:sb;description:foo;default:3"`
+	C bool   `yagclif:"shortname:sc"`
 }
 
 var validStructType = reflect.TypeOf(validStruct{})
@@ -31,10 +31,10 @@ func TestNewParameters(t *testing.T) {
 		assert.Equal(t, "B", params[1].name)
 		assert.Equal(t, "foo", params[1].description)
 		assert.Equal(t, "3", params[1].defaultValue)
-		assert.True(t, params[1].mandatory)
+		assert.False(t, params[1].mandatory)
 		assert.Equal(t, 1, params[1].index)
 		assert.Equal(t, "C", params[2].name)
-		assert.True(t, params[2].mandatory)
+		assert.False(t, params[2].mandatory)
 		assert.Equal(t, 2, params[2].index)
 	})
 	t.Run("returns error", func(t *testing.T) {
@@ -50,16 +50,17 @@ func TestCheckValidty(t *testing.T) {
 		assert.Nil(t, params.checkValidity())
 	})
 	t.Run("duplicates", func(t *testing.T) {
-		assert.NotNil(t, parameters{
-			parameter{
+		params := parameters{
+			&parameter{
 				name:      "A",
 				shortName: "B",
 			},
-			parameter{
+			&parameter{
 				name:      "B",
 				shortName: "B",
 			},
-		}.checkValidity())
+		}
+		assert.NotNil(t, params.checkValidity())
 	})
 }
 
@@ -81,11 +82,12 @@ func TestParseArguments(t *testing.T) {
 		params, err := newParameters(validStructType)
 		assert.Nil(t, err)
 		testStruct := reflect.New(validStructType).Interface()
-		remaining, err := params.ParseArguments(testStruct, []string{"hello", "--b", "world", "!"})
+		remaining, err := params.ParseArguments(testStruct, []string{"hello", "--b", "world", "-sc", "!"})
 		assert.Nil(t, err)
 		assert.Equal(t, []string{"hello", "!"}, remaining)
 		assert.Equal(t, &validStruct{
 			B: "world",
+			C: true,
 		}, testStruct)
 	})
 	t.Run("error at setter callback generating", func(t *testing.T) {

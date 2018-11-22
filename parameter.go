@@ -143,17 +143,6 @@ func (p *parameter) Matches(s string) bool {
 	return false
 }
 
-// Getter for used.
-// Serves as a marked for duplicate arguments.
-func (p *parameter) Used() bool {
-	return p.used
-}
-
-// Marks the parameters as used.
-func (p *parameter) Use() {
-	p.used = true
-}
-
 func (p *parameter) IsArrayType() bool {
 	stringArrayType, intArrayType := reflect.TypeOf([]string{}), reflect.TypeOf([]int{})
 	t := p.tipe
@@ -233,7 +222,10 @@ func (p *parameter) setterOnValue(target reflect.Value) func(value string) error
 
 // fills an object with the desired value
 func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, error) {
-	// TODO add parameter usage check
+	if p.used {
+		return nil, fmt.Errorf("%s used multiple times", p.name)
+	}
+	p.used = true
 	target := p.getValue(obj)
 	setter := p.setterOnValue(target)
 	// no setter callback for bool type
@@ -241,6 +233,56 @@ func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, e
 		return nil, fmt.Errorf("Incompatible type")
 	}
 	return setter, nil
+}
+
+func (p *parameter) setDefault(obj interface{}) (bool, error) {
+	defaultValue := p.defaultValue
+	if defaultValue != "" {
+		target := p.getValue(obj)
+		return true, p.setDefaultOnValue(target)
+	}
+	return false, nil
+}
+
+func (p *parameter) setDefaultOnValue(value reflect.Value) error {
+	if p.defaultValue == "" {
+		return nil
+	}
+	setter := p.setterOnValue(value)
+	return setter(p.defaultValue)
+}
+func (p *parameter) testDefaultValue() error {
+	setMockValue := func(value interface{}) error {
+		valueType := reflect.TypeOf(value)
+		mockValue := reflect.New(valueType).Elem()
+		return p.setDefaultOnValue(mockValue)
+	}
+	switch p.tipe {
+	case reflect.TypeOf(false):
+		return setMockValue(false)
+	case reflect.TypeOf(1):
+		return setMockValue(1)
+	case reflect.TypeOf(""):
+		return setMockValue("")
+	case reflect.TypeOf([]string{}):
+		return setMockValue([]string{})
+	case reflect.TypeOf([]int{}):
+		return setMockValue([]int{})
+	}
+	return fmt.Errorf("Incompatible type")
+}
+func (p *parameter) validate() error {
+	getError := func(s string) error {
+		return fmt.Errorf("parameter %s : %s",
+			p.name, s,
+		)
+	}
+	if (p.mandatory || p.tipe == reflect.TypeOf(true)) && p.defaultValue != "" {
+		return getError("boolean type can not be mandatory or have a default value")
+	} else if !p.IsArrayType() && p.delimiter != "" {
+		return getError("delimiter on non array type")
+	}
+	return p.testDefaultValue()
 }
 
 // Changes the parameter by the value of the constraint.
@@ -291,6 +333,9 @@ func newParameter(sf reflect.StructField) (*parameter, error) {
 				"error parsing constraint %s at field %s : %e",
 				constraint, newParam.name, err)
 		}
+	}
+	if err := newParam.validate(); err != nil {
+		return nil, err
 	}
 	return &newParam, nil
 }

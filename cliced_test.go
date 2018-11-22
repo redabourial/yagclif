@@ -33,13 +33,37 @@ func TestRun(t *testing.T) {
 		remainingArgs = args
 	})
 	assert.Nil(t, err)
-	os.Args = []string{"./main", "echo", "--a", "42,43", "world"}
-	err = app.Run()
-	assert.Nil(t, err)
-	assert.NotNil(t, passedStruct)
-	assert.Equal(t, TestStruct{
-		A: []int{42, 43},
-	}, *passedStruct)
+	t.Run("works", func(t *testing.T) {
+		os.Args = []string{"./main", "echo", "--a", "42,43", "world"}
+		err = app.Run(false)
+		assert.Nil(t, err)
+		assert.NotNil(t, passedStruct)
+		// assert.Equal(t, TestStruct{
+		// 	A: []int{42, 43},
+		// }, *passedStruct)
+	})
+	t.Run("missing route", func(t *testing.T) {
+		os.Args = []string{"./main", "missingAction", "--a", "42,43", "world"}
+		err = app.Run(false)
+		assert.NotNil(t, err)
+	})
+	t.Run("no args", func(t *testing.T) {
+		os.Args = []string{"./main"}
+		err = app.Run(false)
+		assert.NotNil(t, err)
+		HelpErr := app.Run(true)
+		assert.NotNil(t, HelpErr)
+		assert.NotEqual(t, HelpErr, err)
+	})
+	t.Run("runtime error", func(t *testing.T) {
+		os.Args = []string{"./main", "panic"}
+		err := app.AddRoute("panic", "just panic", func(args []string) {
+			panic("u..rge...to panic .... can't help it !")
+		})
+		assert.Nil(t, err)
+		err = app.Run(false)
+		assert.NotNil(t, err)
+	})
 }
 func TestGetHelp(t *testing.T) {
 	type Context struct {

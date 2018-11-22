@@ -2,14 +2,20 @@
 
 ## Usage :
 ### To Parse command line arguments :
+
 ```Go
-import "github.com/potatomasterrace/yagclif"
+package main
 
-// make sure
+import (
+    "fmt"
+    "github.com/potatomasterrace/yagclif"
+)
+
 type MyContext struct{
-    MyInteger `yaglif:"mandatory"`
+    MyInteger int `yagclif:"mandatory"`
+    MyIntegerArray []int `yagclif:"delimiter:,;default:1,2,3,4,5"`
+    MyString string `yagclif:"description:short explaination"`
 }
-
 
 func main(){
     context := MyContext{}
@@ -17,17 +23,45 @@ func main(){
     if err != nil{
         panic(err)
     }
+    fmt.Printf("%#v",context)
     // Context now has been loaded with arguments
 }
 ```
 
 ### As a Framework :
 ```Go
+package main
 
+import (
+    "fmt"
+    "github.com/potatomasterrace/yagclif"
+)
+
+type MyContext struct{
+    MyInteger int `yagclif:"mandatory"`
+    MyIntegerArray []int `yagclif:"delimiter:,;default:1,2,3,4,5"`
+    MyString string `yagclif:"description:short explaination"`
+}
+
+func main(){
+    context := MyContext{}
+    err := yagclif.Parse(&context)
+    if err != nil{
+        panic(err)
+    }
+    fmt.Printf("%#v",context)
+    // Context now has been loaded with arguments
+}
 ```
-## Supported Struct Tags:
-
+## Supported struct field types:
+* boolean
+* string 
+* int 
+* int array
+* string array
 ## Tag options :
+### Mandatory
+    any struct field marked as mandatory will cause an error if missing in arguments 
 ### Mandatory
 ### Delimiter 
 ## Help generator

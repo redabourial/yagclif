@@ -124,5 +124,3 @@ func TestNewRoute(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 }
-
-// TODO test Run

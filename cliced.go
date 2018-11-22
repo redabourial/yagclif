@@ -36,11 +36,14 @@ func (app *App) AddRoute(name string, description string, callback interface{}) 
 	return err
 }
 
-func (app *App) Run() error {
+func (app *App) Run(outputHelpOnError bool) error {
 	args := os.Args
 	getError := func(err interface{}) error {
-		help := app.GetHelp()
-		return fmt.Errorf("%s\r\n%s", err, help)
+		if outputHelpOnError {
+			help := app.GetHelp()
+			return fmt.Errorf("%s\r\n%s", err, help)
+		}
+		return fmt.Errorf("%s", err)
 	}
 	if len(args) < 2 {
 		return getError("no route was found")

@@ -19,7 +19,6 @@ func getCustomCallBackType(callBack interface{}) (reflect.Type, error) {
 		return nil, fmt.Errorf("callback value cannot be nil")
 	}
 	callBackTipe := reflect.TypeOf(callBack)
-	// TODO find a better way to check that it is a function
 	if callBackTipe.Kind().String() == "func" {
 		switch callBackTipe.NumIn() {
 		case 1:
