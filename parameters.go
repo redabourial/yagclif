@@ -130,5 +130,8 @@ func Parse(obj interface{}) (remainingArgs []string, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(os.Args) <= 1 {
+		return params.ParseArguments(obj, os.Args[1:])
+	}
 	return params.ParseArguments(obj, os.Args)
 }

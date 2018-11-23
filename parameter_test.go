@@ -244,7 +244,7 @@ func TestNewParameter(t *testing.T) {
 			field := reflect.TypeOf(foo{}).Field(0)
 			param, err := newParameter(field)
 			assert.Nil(t, err)
-			assert.Equal(t, ",", param.delimiter)
+			assert.Equal(t, constraintsDelimiter, param.delimiter)
 		})
 
 		t.Run("on delimiter", func(t *testing.T) {

@@ -2,31 +2,37 @@
 
 ## Usage :
 ### To Parse command line arguments :
-
+#### Code
 ```Go
 package main
 
 import (
-    "fmt"
-    "github.com/potatomasterrace/yagclif"
+	"fmt"
+
+	"github.com/potatomasterrace/yagclif"
 )
 
-type MyContext struct{
-    MyInteger int `yagclif:"mandatory"`
-    MyIntegerArray []int `yagclif:"delimiter:,;default:1,2,3,4,5"`
-    MyString string `yagclif:"description:short explaination"`
+type MyContext struct {
+    MyInteger      int    `yagclif:"shortname:mi;mandatory"`
+    // delimiter defaults to ; if none is set;
+    MyIntegerArray []int  `yagclif:"delimiter:,`
+	MyString       string `yagclif:"default:hello world !;description:short explaination"`
 }
 
-func main(){
-    context := MyContext{}
-    err := yagclif.Parse(&context)
-    if err != nil{
-        panic(err)
-    }
-    fmt.Printf("%#v",context)
-    // Context now has been loaded with arguments
+func main() {
+	context := MyContext{}
+	err := yagclif.Parse(&context)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%#v", context)
+	// Context now has been loaded with arguments
 }
 ```
+#### CLI 
+##### ./main -mi 42 
+    Hello
+
 
 ### As a Framework :
 ```Go
