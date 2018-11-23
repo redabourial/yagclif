@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/potatomasterrace/catch"
 )
@@ -128,7 +129,9 @@ func Parse(obj interface{}) (remainingArgs []string, err error) {
 	tipe := reflect.TypeOf(obj).Elem()
 	params, err := newParameters(tipe)
 	if err != nil {
-		return nil, err
+		helpTexts := params.getHelp()
+		helpText := strings.Join(helpTexts, "\r\n")
+		return nil, fmt.Errorf("%s\r\n,%s", err, helpText)
 	}
 	if len(os.Args) <= 1 {
 		return params.ParseArguments(obj, os.Args[1:])
