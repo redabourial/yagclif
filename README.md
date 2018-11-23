@@ -95,10 +95,10 @@ func panicIfError(err error) {
 func main() {
 	app := yagclif.NewCliApp("My cool project name", "a cool description for my project")
 	// supports two types of functions:
-	// 			  - func([]string) for remaining arguments
-	//            - first parameter struct that will be parsed then a []string parameter for remaining arguments
-    err := app.AddRoute("actionA", "output the parsed context and the arguments",
-        // Type *MyContext works too
+	// func([]string) for remaining arguments
+	// first parameter struct that will be parsed then a []string parameter for remaining arguments
+	err := app.AddRoute("actionA", "output the parsed context and the arguments",
+		// Type *MyContext works too
 		func(context MyContext, remainingArgs []string) {
 			fmt.Println("you choose ActionA")
 			fmt.Println("context:", context, "remaingArgs:", remainingArgs)
