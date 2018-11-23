@@ -120,9 +120,9 @@ func main() {
 ##### go run main.go actionA someArguments...
 will output an error as myinteger is mandatory and missing
 
-panic: missing argument [--myinteger -mi] for MyInteger
-My cool project name
-a cool description for my project
+    panic: missing argument [--myinteger -mi] for MyInteger
+    My cool project name
+    a cool description for my project
 
          actionA : output the parsed context and the arguments
                  usage :
