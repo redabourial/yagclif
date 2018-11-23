@@ -86,6 +86,9 @@ func (params *parameters) assignDefaults(obj interface{}) error {
 func (params *parameters) checkForMissingMandatory() error {
 	for _, param := range *params {
 		if param.mandatory && !param.used {
+			if param.description != "" {
+				return fmt.Errorf("missing argument %s for %s %s", param.CliNames(), param.name, param.description)
+			}
 			return fmt.Errorf("missing argument %s for %s", param.CliNames(), param.name)
 		}
 	}
@@ -131,10 +134,17 @@ func Parse(obj interface{}) (remainingArgs []string, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(os.Args) <= 1 {
-		return params.ParseArguments(obj, os.Args[1:])
+	remainingArgs, err = params.ParseArguments(obj, os.Args[1:])
+	if err != nil {
+		return nil, fmt.Errorf(
+			"%s\r\nusage:\r\n%s\r\n",
+			err, strings.Join(
+				params.getHelp(),
+				"\r\n",
+			),
+		)
 	}
-	return params.ParseArguments(obj, os.Args)
+	return remainingArgs, nil
 }
 
 func GetHelp(obj interface{}) string {

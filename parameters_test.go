@@ -205,7 +205,7 @@ func TestParseArguments(t *testing.T) {
 func TestParse(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		testStruct := &validStruct{}
-		os.Args = []string{"hello", "--b", "world", "!"}
+		os.Args = []string{"main", "hello", "--b", "world", "!"}
 		remaining, err := Parse(testStruct)
 		assert.Nil(t, err)
 		assert.Equal(t, []string{"hello", "!"}, remaining)
@@ -216,7 +216,7 @@ func TestParse(t *testing.T) {
 			b string `yagclif:"something"`
 		}
 		testStruct := &faultyStruct{}
-		os.Args = []string{"hello", "-b", "world", "!"}
+		os.Args = []string{"main", "hello", "-b", "world", "!"}
 		remaining, err := Parse(testStruct)
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)

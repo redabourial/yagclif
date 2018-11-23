@@ -82,8 +82,11 @@ func (app *App) GetHelp() string {
 	for routeName, route := range app.routes {
 		routeTitle := fmt.Sprintf("\t %s : %s", routeName, route.description)
 		writeln(routeTitle)
+		if route.parameterType != nil {
+			writeln("\t\t usage :")
+		}
 		routeArgsHelp := route.getHelp()
-		routeHelp := prependToArray(routeArgsHelp, "\t\t")
+		routeHelp := prependToArray(routeArgsHelp, "\t\t\t")
 		writeln(routeHelp)
 	}
 	return buffer.String()
