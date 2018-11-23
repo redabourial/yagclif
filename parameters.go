@@ -49,16 +49,6 @@ func (params *parameters) checkValidity() error {
 			existingNames[name] = param
 		}
 	}
-
-	return nil
-}
-
-func (params *parameters) checkForMissingMandatory() error {
-	for _, param := range *params {
-		if param.mandatory && !param.used {
-			return fmt.Errorf("missing argument %s for %s", param.CliNames(), param.name)
-		}
-	}
 	return nil
 }
 
@@ -85,7 +75,18 @@ func (params *parameters) getHelp() []string {
 func (params *parameters) assignDefaults(obj interface{}) error {
 	for _, param := range *params {
 		_, err := param.setDefault(obj)
-		return err
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (params *parameters) checkForMissingMandatory() error {
+	for _, param := range *params {
+		if param.mandatory && !param.used {
+			return fmt.Errorf("missing argument %s for %s", param.CliNames(), param.name)
+		}
 	}
 	return nil
 }

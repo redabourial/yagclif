@@ -38,9 +38,25 @@ func TestNewParameters(t *testing.T) {
 		assert.Equal(t, 2, params[2].index)
 	})
 	t.Run("returns error", func(t *testing.T) {
-		params, err := newParameters(faultyStructType)
-		assert.NotNil(t, err)
-		assert.Nil(t, params)
+		t.Run("new parameters error", func(t *testing.T) {
+			params, err := newParameters(faultyStructType)
+			assert.NotNil(t, err)
+			assert.Nil(t, params)
+		})
+		t.Run("non struct type", func(t *testing.T) {
+			params, err := newParameters(reflect.TypeOf(""))
+			assert.NotNil(t, err)
+			assert.Nil(t, params)
+		})
+		t.Run("non valid tags", func(t *testing.T) {
+			type foo struct {
+				field1 bool `yagclif:"shortname:sb"`
+				field2 bool `yagclif:"shortname:sb"`
+			}
+			params, err := newParameters(reflect.TypeOf(foo{}))
+			assert.NotNil(t, err)
+			assert.Nil(t, params)
+		})
 	})
 }
 func TestCheckValidty(t *testing.T) {
@@ -77,6 +93,64 @@ func TestFind(t *testing.T) {
 	})
 }
 
+func TestParamsGetHelp(t *testing.T) {
+	params, err := newParameters(validStructType)
+	assert.Nil(t, err)
+	help := params.getHelp()
+	assert.Len(t, help, 3)
+}
+func TestAssignDefault(t *testing.T) {
+	t.Run("works", func(t *testing.T) {
+		type Foo struct {
+			Solution int `yagclif:"default:42"`
+		}
+		fooInstance := Foo{}
+		params, err := newParameters(reflect.TypeOf(fooInstance))
+		assert.Nil(t, err)
+		assert.NotNil(t, params)
+		err = params.assignDefaults(&fooInstance)
+		assert.Nil(t, err)
+		assert.Equal(t, Foo{
+			Solution: 42,
+		}, fooInstance)
+	})
+	t.Run("returns errors", func(t *testing.T) {
+		type Foo struct {
+			Solution int
+		}
+		fooInstance := Foo{}
+		params, err := newParameters(reflect.TypeOf(fooInstance))
+		assert.Nil(t, err)
+		assert.NotNil(t, params)
+		// stub an unparselable value
+		params[0].defaultValue = "hello"
+		err = params.assignDefaults(&fooInstance)
+		assert.NotNil(t, err)
+	})
+}
+
+func TestCheckForMissingMandatory(t *testing.T) {
+	params := parameters{
+		&parameter{
+			used:      true,
+			mandatory: true,
+		},
+		&parameter{
+			used:      true,
+			mandatory: true,
+		},
+	}
+	t.Run("false negative", func(t *testing.T) {
+		err := params.checkForMissingMandatory()
+		assert.Nil(t, err)
+	})
+	t.Run("false positive", func(t *testing.T) {
+		params[1].used = false
+		err := params.checkForMissingMandatory()
+		assert.NotNil(t, err)
+
+	})
+}
 func TestParseArguments(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		params, err := newParameters(validStructType)
@@ -115,15 +189,19 @@ func TestParseArguments(t *testing.T) {
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)
 	})
+	t.Run("error on missing mandatory", func(t *testing.T) {
+		type Foo struct {
+			Foo int `yagclif:"mandatory"`
+		}
+		fooType := reflect.TypeOf(Foo{})
+		testStruct := &Foo{}
+		params, err := newParameters(fooType)
+		assert.Nil(t, err)
+		remaining, err := params.ParseArguments(testStruct, []string{})
+		assert.Nil(t, remaining)
+		assert.NotNil(t, err)
+	})
 }
-
-func TestParamsGetHelp(t *testing.T) {
-	params, err := newParameters(validStructType)
-	assert.Nil(t, err)
-	help := params.getHelp()
-	assert.Len(t, help, 3)
-}
-
 func TestParse(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		testStruct := &validStruct{}

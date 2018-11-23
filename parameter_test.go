@@ -8,56 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSplit(t *testing.T) {
-	p := parameter{
-		delimiter: "-",
-	}
-	splittedValues := p.Split("hello-world-!")
-	assert.Equal(t, []string{"hello", "world", "!"}, splittedValues)
-}
-func TestHasShortName(t *testing.T) {
-	t.Run("positive", func(t *testing.T) {
-		p := parameter{
-			shortName: "hello",
-		}
-		assert.True(t, p.hasShortName())
-	})
-	t.Run("negative", func(t *testing.T) {
-		p := parameter{}
-		assert.False(t, p.hasShortName())
-	})
-}
-
-func TestFillParameter(t *testing.T) {
-	t.Run("Works", func(t *testing.T) {
-		param := &parameter{}
-		assert.EqualValues(
-			t,
-			nil,
-			param.fillParameter("description:42"),
-			param.fillParameter("shortname:43"),
-			param.fillParameter("mandatory"),
-			param.fillParameter("delimiter:;"),
-			param.fillParameter("default:44"),
-		)
-		assert.Equal(t, parameter{
-			description:  "42",
-			shortName:    "43",
-			mandatory:    true,
-			delimiter:    ";",
-			defaultValue: "44",
-		}, *param)
-	})
-	t.Run("splitError", func(t *testing.T) {
-		param := &parameter{}
-		assert.NotNil(t, param.fillParameter("description::"))
-	})
-	t.Run("error", func(t *testing.T) {
-		param := &parameter{}
-		assert.NotNil(t, param.fillParameter("something"))
-	})
-}
-
 func TestSplitConstraint(t *testing.T) {
 	t.Run("With value", func(t *testing.T) {
 		kv, err := splitConstraint("hello:world")
@@ -78,6 +28,26 @@ func TestSplitConstraint(t *testing.T) {
 	t.Run("too many :::", func(t *testing.T) {
 		_, err := splitConstraint("hello:::")
 		assert.NotNil(t, err)
+	})
+}
+
+func TestSplit(t *testing.T) {
+	p := parameter{
+		delimiter: "-",
+	}
+	splittedValues := p.Split("hello-world-!")
+	assert.Equal(t, []string{"hello", "world", "!"}, splittedValues)
+}
+func TestHasShortName(t *testing.T) {
+	t.Run("positive", func(t *testing.T) {
+		p := parameter{
+			shortName: "hello",
+		}
+		assert.True(t, p.hasShortName())
+	})
+	t.Run("negative", func(t *testing.T) {
+		p := parameter{}
+		assert.False(t, p.hasShortName())
 	})
 }
 
@@ -107,47 +77,6 @@ func TestMatches(t *testing.T) {
 		})
 	})
 }
-func TestNewParameter(t *testing.T) {
-	type foo struct {
-		a int `yagclif:"something"`
-		b int `yagclif:"mandatory;shortname:c"`
-	}
-	t.Run("Works", func(t *testing.T) {
-		field := reflect.TypeOf(foo{}).Field(1)
-		param, err := newParameter(field)
-		assert.Nil(t, err)
-		assert.True(t, param.mandatory)
-		assert.True(t, param.Matches("--b"))
-		assert.True(t, param.Matches("-c"))
-		assert.False(t, param.Matches("-b"))
-	})
-	t.Run("delimtiter", func(t *testing.T) {
-		t.Run("on empty delimiter", func(t *testing.T) {
-			type foo struct {
-				b []string `yagclif:""`
-			}
-			field := reflect.TypeOf(foo{}).Field(0)
-			param, err := newParameter(field)
-			assert.Nil(t, err)
-			assert.Equal(t, ",", param.delimiter)
-		})
-
-		t.Run("on delimiter", func(t *testing.T) {
-			type foo struct {
-				a []int `yagclif:"delimiter:!"`
-			}
-			field := reflect.TypeOf(foo{}).Field(0)
-			param, err := newParameter(field)
-			assert.Nil(t, err)
-			assert.Equal(t, param.delimiter, "!")
-		})
-	})
-	t.Run("Returns error", func(t *testing.T) {
-		field := reflect.TypeOf(foo{}).Field(0)
-		_, err := newParameter(field)
-		assert.NotNil(t, err)
-	})
-}
 
 func TestGetValue(t *testing.T) {
 	type foo struct {
@@ -162,7 +91,6 @@ func TestGetValue(t *testing.T) {
 	barValue.SetInt(int64(42))
 	assert.Equal(t, 42, fooVar.Bar)
 }
-
 func TestSetterCallBacks(t *testing.T) {
 	type foo struct {
 		Bar bool
@@ -264,6 +192,77 @@ func TestSetterCallBacks(t *testing.T) {
 		assert.NotNil(t, err)
 	})
 }
+func TestFillParameter(t *testing.T) {
+	t.Run("Works", func(t *testing.T) {
+		param := &parameter{}
+		assert.EqualValues(
+			t,
+			nil,
+			param.fillParameter("description:42"),
+			param.fillParameter("shortname:43"),
+			param.fillParameter("mandatory"),
+			param.fillParameter("delimiter:;"),
+			param.fillParameter("default:44"),
+		)
+		assert.Equal(t, parameter{
+			description:  "42",
+			shortName:    "43",
+			mandatory:    true,
+			delimiter:    ";",
+			defaultValue: "44",
+		}, *param)
+	})
+	t.Run("splitError", func(t *testing.T) {
+		param := &parameter{}
+		assert.NotNil(t, param.fillParameter("description::"))
+	})
+	t.Run("error", func(t *testing.T) {
+		param := &parameter{}
+		assert.NotNil(t, param.fillParameter("something"))
+	})
+}
+
+func TestNewParameter(t *testing.T) {
+	type foo struct {
+		a int `yagclif:"something"`
+		b int `yagclif:"mandatory;shortname:c"`
+	}
+	t.Run("Works", func(t *testing.T) {
+		field := reflect.TypeOf(foo{}).Field(1)
+		param, err := newParameter(field)
+		assert.Nil(t, err)
+		assert.True(t, param.mandatory)
+		assert.True(t, param.Matches("--b"))
+		assert.True(t, param.Matches("-c"))
+		assert.False(t, param.Matches("-b"))
+	})
+	t.Run("delimtiter", func(t *testing.T) {
+		t.Run("on empty delimiter", func(t *testing.T) {
+			type foo struct {
+				b []string `yagclif:""`
+			}
+			field := reflect.TypeOf(foo{}).Field(0)
+			param, err := newParameter(field)
+			assert.Nil(t, err)
+			assert.Equal(t, ",", param.delimiter)
+		})
+
+		t.Run("on delimiter", func(t *testing.T) {
+			type foo struct {
+				a []int `yagclif:"delimiter:!"`
+			}
+			field := reflect.TypeOf(foo{}).Field(0)
+			param, err := newParameter(field)
+			assert.Nil(t, err)
+			assert.Equal(t, param.delimiter, "!")
+		})
+	})
+	t.Run("Returns error", func(t *testing.T) {
+		field := reflect.TypeOf(foo{}).Field(0)
+		_, err := newParameter(field)
+		assert.NotNil(t, err)
+	})
+}
 
 func TestParamHelp(t *testing.T) {
 	stringContains := func(s string, substrs ...string) {
@@ -333,5 +332,38 @@ func TestParamHelp(t *testing.T) {
 		}
 		help := param.GetHelp()
 		stringContains(help, "--bar", "[]int", "delimiter", "whitespace", "some int array", "mandatory")
+	})
+}
+
+func TestValidate(t *testing.T) {
+	type foo struct {
+		bar bool
+	}
+	t.Run("works", func(t *testing.T) {
+		field := reflect.TypeOf(foo{}).Field(0)
+		param, err := newParameter(field)
+		assert.Nil(t, err)
+		assert.NotNil(t, param)
+	})
+	t.Run("error on mandatory bool", func(t *testing.T) {
+		field := reflect.TypeOf(foo{}).Field(0)
+		field.Tag = `yagclif:"mandatory"`
+		param, err := newParameter(field)
+		assert.NotNil(t, err)
+		assert.Nil(t, param)
+	})
+	t.Run("error on bool with default value", func(t *testing.T) {
+		field := reflect.TypeOf(foo{}).Field(0)
+		field.Tag = `yagclif:"default:42"`
+		param, err := newParameter(field)
+		assert.NotNil(t, err)
+		assert.Nil(t, param)
+	})
+	t.Run("error array with empty delimiter", func(t *testing.T) {
+		field := reflect.TypeOf(foo{}).Field(0)
+		field.Tag = `yagclif:"delimiter:-"`
+		param, err := newParameter(field)
+		assert.NotNil(t, err)
+		assert.Nil(t, param)
 	})
 }

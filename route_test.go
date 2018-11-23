@@ -1,7 +1,9 @@
 package yagclif
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -82,12 +84,21 @@ func TestGetCustomCallBack(t *testing.T) {
 			A: 1,
 		}, passedValue)
 	})
-	t.Run("callBack error", func(t *testing.T) {
+	t.Run("callBack formating error", func(t *testing.T) {
 		callbackFunc := reflect.ValueOf(func(i int, remainingArgs []string) {
 		})
 		callback, err := getCustomCallBack(callbackFunc, reflect.TypeOf(SomeStruct{}))
 		assert.Nil(t, err)
 		err = callback([]string{})
+		assert.NotNil(t, err)
+	})
+	t.Run("panic inside callback", func(t *testing.T) {
+		callbackFunc := reflect.ValueOf(func(SomeStruct, []string) {
+			panic("hello")
+		})
+		callback, err := getCustomCallBack(callbackFunc, reflect.TypeOf(SomeStruct{}))
+		assert.Nil(t, err)
+		err = callback([]string{"--a", "42"})
 		assert.NotNil(t, err)
 	})
 }
@@ -122,5 +133,64 @@ func TestNewRoute(t *testing.T) {
 		route, err := newRoute("hello", func(i int, remainingArgs []string) {})
 		assert.Nil(t, route)
 		assert.NotNil(t, err)
+	})
+}
+
+func TestRouteRun(t *testing.T) {
+	t.Run("works", func(t *testing.T) {
+		var passedArgs []string
+		r := route{
+			formatedCallback: func(args []string) error {
+				passedArgs = args
+				return fmt.Errorf("hello")
+			},
+		}
+		expectedArgs := []string{"hello", "world"}
+		err := r.run(expectedArgs)
+		assert.NotNil(t, err)
+		assert.Equal(t, expectedArgs, passedArgs)
+	})
+	t.Run("error", func(t *testing.T) {
+		r := route{}
+		err := r.run([]string{})
+		assert.NotNil(t, err)
+	})
+}
+
+func TestRouteGetHelp(t *testing.T) {
+	t.Run("works", func(t *testing.T) {
+		r := route{
+			parameterType: reflect.TypeOf(SomeStruct{}),
+		}
+		helpTexts := r.getHelp()
+		helpContains := func(s string) bool {
+			for _, helpText := range helpTexts {
+				if strings.Contains(helpText, s) {
+					return true
+				}
+			}
+			return false
+		}
+		assertContains := func(s string) {
+			assert.True(t, helpContains(s))
+		}
+		assertContains("--a")
+		assertContains("(mandatory)")
+		assertContains("int")
+	})
+	t.Run("returns empty on nil parameterType", func(t *testing.T) {
+		r := route{
+			parameterType: nil,
+		}
+		helpTexts := r.getHelp()
+		length := len(helpTexts)
+		assert.Equal(t, 0, length)
+	})
+	t.Run("returns error on unparseable parameterType", func(t *testing.T) {
+		r := route{
+			parameterType: reflect.TypeOf(true),
+		}
+		helpTexts := r.getHelp()
+		assert.Equal(t, []string{"Could not parse parameter type"}, helpTexts)
 	})
 }

@@ -7,13 +7,15 @@ import (
 	"github.com/potatomasterrace/catch"
 )
 
+// route is an implementation of a cli route.
 type route struct {
-	description string
-	callback    func(args []string) error
-	customType  reflect.Type
+	description      string
+	formatedCallback func(args []string) error
+	parameterType    reflect.Type
 }
 
-// Return the type of the custom argument
+// Return the type of the custom argument.
+// returns nil,nil if type of callback is func(somestruct,[]string).
 func getCustomCallBackType(callBack interface{}) (reflect.Type, error) {
 	if callBack == nil {
 		return nil, fmt.Errorf("callback value cannot be nil")
@@ -38,9 +40,10 @@ func getCustomCallBackType(callBack interface{}) (reflect.Type, error) {
 	)
 }
 
+// getSimpleCallBack returns a function that calls the callbackFunction with remaining arguments.
 func getSimpleCallBack(callBackFunctionValue reflect.Value) func(args []string) error {
 	return func(args []string) error {
-		_, err := catch.Panic(func() {
+		err := catch.CatchError(func() {
 			arguments := make([]reflect.Value, 1)
 			arguments[0] = reflect.ValueOf(args)
 			callBackFunctionValue.Call(arguments)
@@ -52,7 +55,9 @@ func getSimpleCallBack(callBackFunctionValue reflect.Value) func(args []string) 
 	}
 }
 
-func getCustomCallBack(callBackFunctionValue reflect.Value, callBackCustomType reflect.Type) (func(args []string) error, error) {
+// getSimpleCallBack returns a function that calls the callbackFunction with an instance
+// of its custom parameter and remaining arguments.
+func getCustomCallBack(callBackFunctionValue reflect.Value, callBackCustomType reflect.Type) (callback func(args []string) error, err error) {
 	params, err := newParameters(callBackCustomType)
 	if err != nil {
 		return nil, err
@@ -76,13 +81,15 @@ func getCustomCallBack(callBackFunctionValue reflect.Value, callBackCustomType r
 	}, nil
 }
 
-func formatCallBack(callBackFunctionValue reflect.Value, callBackArgType reflect.Type) (startRoute func(args []string) error, err error) {
+// formatCallBack formats the callback function into a func(args []string)error that executes the callback with arguments.
+func formatCallBack(callBackFunctionValue reflect.Value, callBackArgType reflect.Type) (executeCallback func(args []string) error, err error) {
 	if callBackArgType == nil {
 		return getSimpleCallBack(callBackFunctionValue), nil
 	}
 	return getCustomCallBack(callBackFunctionValue, callBackArgType)
 }
 
+// newRoute creates a new route.
 func newRoute(description string, callBack interface{}) (*route, error) {
 	callBackFunctionValue := reflect.ValueOf(callBack)
 	callBackArgType, err := getCustomCallBackType(callBack)
@@ -94,26 +101,30 @@ func newRoute(description string, callBack interface{}) (*route, error) {
 		return nil, err
 	}
 	return &route{
-		description: description,
-		callback:    formatedCallback,
-		customType:  callBackArgType,
+		description:      description,
+		formatedCallback: formatedCallback,
+		parameterType:    callBackArgType,
 	}, nil
 }
 
+// run executes the formated callback with the arguments.
 func (r *route) run(args []string) error {
-	if r.callback != nil {
-		return r.callback(args)
+	formatedCallback := r.formatedCallback
+	if formatedCallback != nil {
+		return formatedCallback(args)
 	}
 	return fmt.Errorf("callback not defined")
 }
 
+// getHelp returns an array string.
+// Each element is a line of the help text.
 func (r *route) getHelp() []string {
-	if r.customType == nil {
+	if r.parameterType == nil {
 		return []string{}
 	}
-	parameters, err := newParameters(r.customType)
+	parameters, err := newParameters(r.parameterType)
 	if err != nil {
-		return []string{"Could not parse parameters"}
+		return []string{"Could not parse parameter type"}
 	}
 	return parameters.getHelp()
 }

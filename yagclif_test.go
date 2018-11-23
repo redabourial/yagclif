@@ -38,9 +38,9 @@ func TestRun(t *testing.T) {
 		err = app.Run(false)
 		assert.Nil(t, err)
 		assert.NotNil(t, passedStruct)
-		// assert.Equal(t, TestStruct{
-		// 	A: []int{42, 43},
-		// }, *passedStruct)
+		assert.Equal(t, TestStruct{
+			A: []int{42, 43},
+		}, *passedStruct)
 	})
 	t.Run("missing route", func(t *testing.T) {
 		os.Args = []string{"./main", "missingAction", "--a", "42,43", "world"}

@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// concatenates the string array by adding a return to line
+// at the end and a string at the beginning of each line.
 func prependToArray(strs []string, prepend string) string {
 	var buffer strings.Builder
 	for _, str := range strs {
@@ -16,12 +18,15 @@ func prependToArray(strs []string, prepend string) string {
 	return buffer.String()
 }
 
+// App is an implementation of the cli app.
+// It handles routing.
 type App struct {
 	name        string
 	description string
 	routes      map[string]*route
 }
 
+// AddRoute is the methode for adding routes to the cli app.
 func (app *App) AddRoute(name string, description string, callback interface{}) error {
 	if app.routes[name] != nil {
 		return fmt.Errorf(
@@ -36,8 +41,10 @@ func (app *App) AddRoute(name string, description string, callback interface{}) 
 	return err
 }
 
+// Run is the method to start running the cli app.
 func (app *App) Run(outputHelpOnError bool) error {
 	args := os.Args
+	// getError formats the error to output it.
 	getError := func(err interface{}) error {
 		if outputHelpOnError {
 			help := app.GetHelp()
@@ -45,13 +52,14 @@ func (app *App) Run(outputHelpOnError bool) error {
 		}
 		return fmt.Errorf("%s", err)
 	}
+	// if no argument was supplied.
 	if len(args) < 2 {
-		return getError("no route was found")
+		return getError("no action was selected")
 	}
 	routeName := args[1]
 	route := app.routes[routeName]
 	if route == nil {
-		errMsg := fmt.Sprintf("%s route not found", routeName)
+		errMsg := fmt.Sprintf("%s action not found", routeName)
 		return getError(errMsg)
 	}
 	err := route.run(args[2:])
@@ -61,6 +69,7 @@ func (app *App) Run(outputHelpOnError bool) error {
 	return nil
 }
 
+// GetHelp return the help for the current cli app.
 func (app *App) GetHelp() string {
 	var buffer strings.Builder
 	writeln := func(s string) {
@@ -80,6 +89,7 @@ func (app *App) GetHelp() string {
 	return buffer.String()
 }
 
+// NewCliApp creates a new cli app.
 func NewCliApp(name string, description string) *App {
 	return &App{
 		name:        name,

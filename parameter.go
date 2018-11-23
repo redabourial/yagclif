@@ -278,9 +278,11 @@ func (p *parameter) validate() error {
 		)
 	}
 	if (p.mandatory || p.tipe == reflect.TypeOf(true)) && p.defaultValue != "" {
-		return getError("boolean type can not be mandatory or have a default value")
-	} else if !p.IsArrayType() && p.delimiter != "" {
+		return getError("can not be mandatory or have a default value")
+	} else if !p.IsArrayType() && strings.Trim(p.delimiter, " ") != "" {
 		return getError("delimiter on non array type")
+	} else if p.mandatory && p.tipe == reflect.TypeOf(true) {
+		return getError("boolean type can not be mandatory")
 	}
 	return p.testDefaultValue()
 }
@@ -312,7 +314,7 @@ func (p *parameter) fillParameter(constraint string) error {
 	return fmt.Errorf("unknown key %s", splittedConstraint.value)
 }
 
-// Returns a new Paramter from the structField
+// Returns a new Parameter from the structField
 func newParameter(sf reflect.StructField) (*parameter, error) {
 	tag, newParam := sf.Tag.Get(tagName), parameter{
 		name:  sf.Name,
@@ -320,7 +322,7 @@ func newParameter(sf reflect.StructField) (*parameter, error) {
 		tipe:  sf.Type,
 	}
 	if newParam.IsArrayType() && newParam.delimiter == "" {
-		newParam.delimiter = ","
+		newParam.delimiter = constraintsDelimiter
 	}
 	if tag == "" {
 		return &newParam, nil
