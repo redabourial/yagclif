@@ -129,12 +129,23 @@ func Parse(obj interface{}) (remainingArgs []string, err error) {
 	tipe := reflect.TypeOf(obj).Elem()
 	params, err := newParameters(tipe)
 	if err != nil {
-		helpTexts := params.getHelp()
-		helpText := strings.Join(helpTexts, "\r\n")
-		return nil, fmt.Errorf("%s\r\n,%s", err, helpText)
+		return nil, err
 	}
 	if len(os.Args) <= 1 {
 		return params.ParseArguments(obj, os.Args[1:])
 	}
 	return params.ParseArguments(obj, os.Args)
+}
+
+func GetHelp(obj interface{}) string {
+	tipe := reflect.TypeOf(obj).Elem()
+	params, err := newParameters(tipe)
+	if err != nil {
+		return fmt.Sprintf("%s", err)
+	}
+	return strings.Join(
+		params.getHelp(),
+		"\r\n",
+	)
+
 }
