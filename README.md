@@ -21,10 +21,10 @@ type MyContext struct {
 	// if present.
 	MyInteger int `yagclif:"shortname:mi;mandatory"`
 	// delimiter defaults to ; if none is set;
-    MyIntegerArray []int  `yagclif:"delimiter:,`
-    // default sets the value of the field in advance
-    // description show in the help and errors texts
-	MyString       string `yagclif:"default:hello world !;description:short explaination"`
+	MyIntegerArray []int `yagclif:"delimiter:,`
+	// default sets the value of the field in advance
+	// description show in the help and errors texts
+	MyString string `yagclif:"default:hello world !;description:short explaination"`
 }
 
 func main() {
@@ -44,6 +44,7 @@ func main() {
 		context, remainingArgs,
 	)
 }
+
 ```
 #### CLI 
 ##### go run main.go 
