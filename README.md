@@ -132,11 +132,11 @@ a cool description for my project
 
          actionB : output remaining arguments
 ##### go run main.go actionA -mi 42 foo bar
-you choose ActionA
-context: {42 [] hello world !} remaingArgs: [foo bar]
+    you choose ActionA
+    context: {42 [] hello world !} remaingArgs: [foo bar]
 ##### go run main.go actionB -mi 42 foo bar
-you choose ActionB
-[-mi 42 foo bar]
+    you choose ActionB
+    [-mi 42 foo bar]
 ## Supported struct field types:
 * boolean
 * string 
