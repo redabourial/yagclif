@@ -1,6 +1,6 @@
 # YAGCLIF (Yet Another Go Command Line Framework)
 Yagclif is a basic cli arguments parser that can be used as a framework.
-
+It can also generate help text for cli tools.
 ## Usage :
 ### To Parse command line arguments :
 #### Code 
