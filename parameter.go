@@ -321,6 +321,9 @@ func newParameter(sf reflect.StructField) (*parameter, error) {
 		index: sf.Index[0],
 		tipe:  sf.Type,
 	}
+	if tag == "omit" {
+		return nil, nil
+	}
 	if newParam.IsArrayType() && newParam.delimiter == "" {
 		newParam.delimiter = constraintsDelimiter
 	}

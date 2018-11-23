@@ -25,6 +25,8 @@ type MyContext struct {
 	// default sets the value of the field in advance
 	// description show in the help and errors texts
 	MyString string `yagclif:"default:hello world !;description:short explaination"`
+	// omit make yagclif ignore the field
+	MyInterface interface{} `yagclif:"omit"`
 }
 
 func main() {
@@ -80,10 +82,12 @@ import (
 	"github.com/potatomasterrace/yagclif"
 )
 
+// Same struct as before
 type MyContext struct {
 	MyInteger      int    `yagclif:"shortname:mi;mandatory"`
 	MyIntegerArray []int  `yagclif:"delimiter:,`
 	MyString       string `yagclif:"default:hello world !;description:short explaination"`
+	MyInterface interface{} `yagclif:"omit"`
 }
 
 func panicIfError(err error) {

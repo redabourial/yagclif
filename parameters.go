@@ -26,7 +26,9 @@ func newParameters(tipe reflect.Type) (parameters, error) {
 		if err != nil {
 			return nil, err
 		}
-		params = append(params, param)
+		if param != nil {
+			params = append(params, param)
+		}
 	}
 	if err = params.checkValidity(); err != nil {
 		return nil, err
