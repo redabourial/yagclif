@@ -43,7 +43,7 @@ func getCustomCallBackType(callBack interface{}) (reflect.Type, error) {
 // getSimpleCallBack returns a function that calls the callbackFunction with remaining arguments.
 func getSimpleCallBack(callBackFunctionValue reflect.Value) func(args []string) error {
 	return func(args []string) error {
-		err := catch.CatchError(func() {
+		err := catch.Error(func() {
 			arguments := make([]reflect.Value, 1)
 			arguments[0] = reflect.ValueOf(args)
 			callBackFunctionValue.Call(arguments)

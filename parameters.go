@@ -14,7 +14,7 @@ type parameters []*parameter
 // Returns the parameters from an object tags.
 func newParameters(tipe reflect.Type) (parameters, error) {
 	params := parameters{}
-	err := catch.CatchError(func() {
+	err := catch.Error(func() {
 		tipe.NumField()
 	})
 	if err != nil {
