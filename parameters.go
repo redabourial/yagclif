@@ -11,6 +11,21 @@ import (
 
 type parameters []*parameter
 
+func isSupportedType(sf reflect.StructField) bool {
+	supportedTypes := []reflect.Type{
+		reflect.TypeOf(true),
+		reflect.TypeOf(1), reflect.TypeOf(""),
+		reflect.TypeOf([]string{}),
+		reflect.TypeOf([]int{}),
+	}
+	for _, supportedType := range supportedTypes {
+		if supportedType == sf.Type {
+			return true
+		}
+	}
+	return false
+}
+
 // Returns the parameters from an object tags.
 func newParameters(tipe reflect.Type) (parameters, error) {
 	params := parameters{}
@@ -26,8 +41,14 @@ func newParameters(tipe reflect.Type) (parameters, error) {
 		if err != nil {
 			return nil, err
 		}
-		if param != nil {
+		if param != nil && isSupportedType(field) {
 			params = append(params, param)
+		} else {
+			inheritedParams, err := newParameters(field.Type)
+			if err != nil {
+				return nil, err
+			}
+			params = append(params, inheritedParams...)
 		}
 	}
 	if err = params.checkValidity(); err != nil {

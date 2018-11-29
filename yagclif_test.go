@@ -22,7 +22,11 @@ func TestAddRoute(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
+	type EmbededStruct struct {
+		Embeded int `yagclif:"default:42"`
+	}
 	type TestStruct struct {
+		EmbededStruct
 		A []int `yagclif:"delimiter:,;mandatory"`
 	}
 	app := NewCliApp("Hello", "simple hello worlds")
@@ -39,7 +43,8 @@ func TestRun(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, passedStruct)
 		assert.Equal(t, TestStruct{
-			A: []int{42, 43},
+			EmbededStruct: EmbededStruct{Embeded: 42},
+			A:             []int{42, 43},
 		}, *passedStruct)
 	})
 	t.Run("missing route", func(t *testing.T) {
