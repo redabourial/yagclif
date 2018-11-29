@@ -46,7 +46,7 @@ func newParameters(tipe reflect.Type) (parameters, error) {
 		} else {
 			inheritedParams, err := newParameters(field.Type)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("%s\r\n error parsing recursively field %s  ", err, field.Name)
 			}
 			params = append(params, inheritedParams...)
 		}
