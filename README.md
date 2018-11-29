@@ -1,6 +1,8 @@
 # YAGCLIF (Yet Another Go Command Line Framework)
 Yagclif is a basic cli arguments parser that can be used as a framework.
+
 It can also generate help text for cli tools.
+
 ## Usage :
 ### To Parse command line arguments :
 #### Code 
@@ -174,7 +176,14 @@ Example
 ```
 ### Description
     a description to be printed for the variable
-
+```Go
+    MyIntegerArray []int `yagclif:"delimiter:,;description:some usage tip"`
+```
+### Omit
+    omit the struct field from parsing 
+```Go
+    MyIntegerArray []int `yagclif:"omit"`
+```
 ## Known issues :
 ### Nested structs do NOT work
     Your parameter can not have nested struct. use inheritance instead
