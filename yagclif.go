@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/potatomasterrace/catch"
 )
 
 // concatenates the string array by adding a return to line
@@ -41,32 +43,41 @@ func (app *App) AddRoute(name string, description string, callback interface{}) 
 	return err
 }
 
+// RunNoPanic is the method to start running the cli app.
+func (app *App) RunNoPanic(outputHelpOnError bool) error {
+	return catch.Error(func() {
+		app.Run(outputHelpOnError)
+	})
+}
+
 // Run is the method to start running the cli app.
-func (app *App) Run(outputHelpOnError bool) error {
+func (app *App) Run(outputHelpOnError bool) {
 	args := os.Args
-	// getError formats the error to output it.
-	getError := func(err interface{}) error {
+	// formatError formats the error to output it.
+	formatError := func(err interface{}) error {
 		if outputHelpOnError {
 			help := app.GetHelp()
-			return fmt.Errorf("%s\r\n%s", err, help)
+			return fmt.Errorf("%s\r\n%s\r\n", err, help)
 		}
 		return fmt.Errorf("%s", err)
 	}
 	// if no argument was supplied.
 	if len(args) < 2 {
-		return getError("no action was selected")
+		err := formatError("no action was selected")
+		panic(err)
 	}
 	routeName := args[1]
 	route := app.routes[routeName]
 	if route == nil {
 		errMsg := fmt.Sprintf("%s action not found", routeName)
-		return getError(errMsg)
+		err := formatError(errMsg)
+		panic(err)
 	}
 	err := route.run(args[2:])
 	if err != nil {
-		return getError(err)
+		errMsg := formatError(err)
+		panic(errMsg)
 	}
-	return nil
 }
 
 // GetHelp return the help for the current cli app.
