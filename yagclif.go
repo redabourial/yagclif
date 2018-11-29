@@ -51,8 +51,7 @@ func (app *App) RunNoPanic(outputHelpOnError bool) error {
 }
 
 // Run is the method to start running the cli app.
-func (app *App) Run(outputHelpOnError bool) {
-	args := os.Args
+func (app *App) RunWithArgs(args []string, outputHelpOnError bool) {
 	// formatError formats the error to output it.
 	formatError := func(err interface{}) error {
 		if outputHelpOnError {
@@ -101,6 +100,11 @@ func (app *App) GetHelp() string {
 		writeln(routeHelp)
 	}
 	return buffer.String()
+}
+
+// Run is the method to start running the cli app.
+func (app *App) Run(outputHelpOnError bool) {
+	app.RunWithArgs(os.Args, outputHelpOnError)
 }
 
 // NewCliApp creates a new cli app.
