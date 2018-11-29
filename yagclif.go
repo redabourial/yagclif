@@ -1,9 +1,9 @@
 package yagclif
 
 import (
+	"bytes"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/potatomasterrace/catch"
 )
@@ -11,7 +11,7 @@ import (
 // concatenates the string array by adding a return to line
 // at the end and a string at the beginning of each line.
 func prependToArray(strs []string, prepend string) string {
-	var buffer strings.Builder
+	var buffer bytes.Buffer
 	for _, str := range strs {
 		buffer.WriteString(prepend)
 		buffer.WriteString(str)
@@ -81,7 +81,7 @@ func (app *App) RunWithArgs(args []string, outputHelpOnError bool) {
 
 // GetHelp return the help for the current cli app.
 func (app *App) GetHelp() string {
-	var buffer strings.Builder
+	var buffer bytes.Buffer
 	writeln := func(s string) {
 		buffer.WriteString(s)
 		buffer.WriteString("\r\n")
