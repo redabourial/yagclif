@@ -43,7 +43,7 @@ func newParameters(tipe reflect.Type) (parameters, error) {
 		}
 		if param != nil && isSupportedType(field) {
 			params = append(params, param)
-		} else {
+		} else if field.Tag.Get("tagName") != "omit" {
 			inheritedParams, err := newParameters(field.Type)
 			if err != nil {
 				return nil, fmt.Errorf("%s\r\n error parsing recursively field %s  ", err, field.Name)
