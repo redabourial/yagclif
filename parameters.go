@@ -33,7 +33,7 @@ func newParameters(tipe reflect.Type) (parameters, error) {
 		tipe.NumField()
 	})
 	if err != nil {
-		return nil, fmt.Errorf("can not read fields of object \r\n hint: check that you're using a struct type ")
+		return nil, fmt.Errorf("%s\r\ncan not read fields of object \r\n hint: check that you're using a struct type ", err)
 	}
 	for i := 0; i < tipe.NumField(); i++ {
 		field := tipe.Field(i)
