@@ -31,10 +31,8 @@ func TestRun(t *testing.T) {
 	}
 	app := NewCliApp("Hello", "simple hello worlds")
 	var passedStruct *TestStruct
-	var remainingArgs []string
 	err := app.AddRoute("echo", "echoes the args", func(testStruct TestStruct, args []string) {
 		passedStruct = &testStruct
-		remainingArgs = args
 	})
 	assert.Nil(t, err)
 	t.Run("works", func(t *testing.T) {
@@ -47,28 +45,28 @@ func TestRun(t *testing.T) {
 			A:             []int{42, 43},
 		}, *passedStruct)
 	})
-	// t.Run("missing route", func(t *testing.T) {
-	// 	os.Args = []string{"./main", "missingAction", "--a", "42,43", "world"}
-	// 	err = app.RunNoPanic(false)
-	// 	assert.NotNil(t, err)
-	// })
-	// t.Run("no args", func(t *testing.T) {
-	// 	os.Args = []string{"./main"}
-	// 	err = app.RunNoPanic(false)
-	// 	assert.NotNil(t, err)
-	// 	HelpErr := app.RunNoPanic(true)
-	// 	assert.NotNil(t, HelpErr)
-	// 	assert.NotEqual(t, HelpErr, err)
-	// })
-	// t.Run("runtime error", func(t *testing.T) {
-	// 	os.Args = []string{"./main", "panic"}
-	// 	err := app.AddRoute("panic", "just panic", func(args []string) {
-	// 		panic("u..rge...to panic .... can't help it !")
-	// 	})
-	// 	assert.Nil(t, err)
-	// 	err = app.RunNoPanic(false)
-	// 	assert.NotNil(t, err)
-	// })
+	t.Run("missing route", func(t *testing.T) {
+		os.Args = []string{"./main", "missingAction", "--a", "42,43", "world"}
+		err = app.RunNoPanic(false)
+		assert.NotNil(t, err)
+	})
+	t.Run("no args", func(t *testing.T) {
+		os.Args = []string{"./main"}
+		err = app.RunNoPanic(false)
+		assert.NotNil(t, err)
+		HelpErr := app.RunNoPanic(true)
+		assert.NotNil(t, HelpErr)
+		assert.NotEqual(t, HelpErr, err)
+	})
+	t.Run("runtime error", func(t *testing.T) {
+		os.Args = []string{"./main", "panic"}
+		err := app.AddRoute("panic", "just panic", func(args []string) {
+			panic("u..rge...to panic .... can't help it !")
+		})
+		assert.Nil(t, err)
+		err = app.RunNoPanic(false)
+		assert.NotNil(t, err)
+	})
 }
 func TestGetHelp(t *testing.T) {
 	type Context struct {
