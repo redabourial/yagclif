@@ -199,19 +199,6 @@ func TestParseArguments(t *testing.T) {
 			C: true,
 		}, testStruct)
 	})
-	t.Run("error at setter callback generating", func(t *testing.T) {
-		// type faultyStruct struct {
-		// 	a int
-		// 	b interface{}
-		// }
-		// faultyStructType := reflect.TypeOf(faultyStruct{})
-		// testStruct := &faultyStruct{}
-		// params, err := newParameters(faultyStructType)
-		// assert.Nil(t, err)
-		// remaining, err := params.ParseArguments(testStruct, []string{"--b", "hello"})
-		// assert.Nil(t, remaining)
-		// assert.NotNil(t, err)
-	})
 	t.Run("error at executing callback", func(t *testing.T) {
 		type foo struct {
 			bar int
@@ -236,6 +223,18 @@ func TestParseArguments(t *testing.T) {
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)
 	})
+	t.Run("error in setter callback", func(t *testing.T) {
+		type Foo struct {
+			A int `yagclif:"mandatory"`
+		}
+		fooType := reflect.TypeOf(Foo{})
+		testStruct := &Foo{}
+		params, err := newParameters(fooType)
+		assert.Nil(t, err)
+		remaining, err := params.ParseArguments(testStruct, []string{"--a", "42", "--a", "43"})
+		assert.Nil(t, remaining)
+		assert.NotNil(t, err)
+	})
 }
 func TestParse(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
@@ -245,7 +244,7 @@ func TestParse(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, []string{"hello", "!"}, remaining)
 	})
-	t.Run("return err", func(t *testing.T) {
+	t.Run("return err with bad struct", func(t *testing.T) {
 		type faultyStruct struct {
 			a int
 			b string `yagclif:"something"`
@@ -256,4 +255,33 @@ func TestParse(t *testing.T) {
 		assert.Nil(t, remaining)
 		assert.NotNil(t, err)
 	})
+
+	t.Run("return err with bad params", func(t *testing.T) {
+		type goodStruct struct {
+			a int
+			b int `yagclif:"mandatory"`
+		}
+		testStruct := &goodStruct{}
+		os.Args = []string{"main", "-c", "hello", "!"}
+		remaining, err := Parse(testStruct)
+		assert.Nil(t, remaining)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("return err with bad struct", func(t *testing.T) {
+		type goodStruct struct {
+			a int
+			b int `yagclif:"mandatory"`
+		}
+		type randomStruct struct {
+		}
+		testStruct := &goodStruct{}
+		os.Args = []string{"main", "-b", "hello", "!"}
+		remaining, err := Parse(testStruct)
+		assert.Nil(t, remaining)
+		assert.NotNil(t, err)
+	})
+}
+
+func TestSetterCallBack(t *testing.T) {
 }
