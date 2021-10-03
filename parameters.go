@@ -170,16 +170,3 @@ func Parse(obj interface{}) (remainingArgs []string, err error) {
 	}
 	return remainingArgs, nil
 }
-
-func GetHelp(obj interface{}) string {
-	tipe := reflect.TypeOf(obj).Elem()
-	params, err := newParameters(tipe)
-	if err != nil {
-		return fmt.Sprintf("%s", err)
-	}
-	return strings.Join(
-		params.getHelp(),
-		"\r\n",
-	)
-
-}
