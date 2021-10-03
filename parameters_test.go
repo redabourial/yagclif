@@ -100,8 +100,10 @@ func TestParamsGetHelp(t *testing.T) {
 func TestAssignDefault(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		type Foo struct {
-			Solution int `yagclif:"default:42"`
-			Problem  int `yagclif:"default:52;env:TestAssignDefault_Problem"`
+			Solution      int `yagclif:"default:42"`
+			OtherSolution int
+			Problem       int `yagclif:"default:52;env:TestAssignDefault_Problem"`
+			OtherProblem  int `yagclif:"default:51;env:TestAssignDefault_Problem_empty_key"`
 		}
 		os.Setenv("TestAssignDefault_Problem", "53")
 		fooInstance := Foo{}
@@ -111,8 +113,20 @@ func TestAssignDefault(t *testing.T) {
 		err = params.assignDefaults(&fooInstance)
 		assert.Nil(t, err)
 		assert.Equal(t, Foo{
-			Solution: 42,
-			Problem:  53,
+			Solution:      42,
+			Problem:       53,
+			OtherSolution: 0,
+			OtherProblem:  51,
+		}, fooInstance)
+		os.Setenv("TestAssignDefault_Problem_empty_key", "toto")
+		fooInstance = Foo{}
+		params, err = newParameters(reflect.TypeOf(fooInstance))
+		assert.NotNil(t, err)
+		assert.Equal(t, Foo{
+			Solution:      0,
+			Problem:       0,
+			OtherSolution: 0,
+			OtherProblem:  0,
 		}, fooInstance)
 	})
 	t.Run("returns errors", func(t *testing.T) {
