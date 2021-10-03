@@ -110,9 +110,6 @@ func (params *parameters) assignDefaults(obj interface{}) error {
 func (params *parameters) checkForMissingMandatory() error {
 	for _, param := range *params {
 		if param.mandatory && !param.used {
-			if param.description != "" {
-				return fmt.Errorf("missing argument %s for %s %s", param.CliNames(), param.name, param.description)
-			}
 			return fmt.Errorf("missing argument %s for %s", param.CliNames(), param.name)
 		}
 	}
