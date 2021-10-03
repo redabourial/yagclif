@@ -103,6 +103,7 @@ func TestAssignDefault(t *testing.T) {
 			Solution      int `yagclif:"default:42"`
 			OtherSolution int
 			Problem       int `yagclif:"default:52;env:TestAssignDefault_Problem"`
+			NoProblem     int `yagclif:"omit"`
 			OtherProblem  int `yagclif:"default:51;env:TestAssignDefault_Problem_empty_key"`
 		}
 		os.Setenv("TestAssignDefault_Problem", "53")
@@ -115,6 +116,7 @@ func TestAssignDefault(t *testing.T) {
 		assert.Equal(t, Foo{
 			Solution:      42,
 			Problem:       53,
+			NoProblem:     0,
 			OtherSolution: 0,
 			OtherProblem:  51,
 		}, fooInstance)
@@ -125,9 +127,20 @@ func TestAssignDefault(t *testing.T) {
 		assert.Equal(t, Foo{
 			Solution:      0,
 			Problem:       0,
+			NoProblem:     0,
 			OtherSolution: 0,
 			OtherProblem:  0,
 		}, fooInstance)
+
+		os.Setenv("TestAssignDefault_Problem_empty_key", "toto")
+
+		type BadFoo struct {
+			Solution os.File `yagclif:"default:toto"`
+		}
+		badfooInstance := BadFoo{}
+		params, err = newParameters(reflect.TypeOf(badfooInstance))
+		assert.NotNil(t, err)
+		assert.Equal(t, BadFoo{}, badfooInstance)
 	})
 	t.Run("returns errors", func(t *testing.T) {
 		type Foo struct {
