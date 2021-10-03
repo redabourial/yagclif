@@ -246,7 +246,8 @@ func (p *parameter) setDefault(value reflect.Value) error {
 		return nil
 	}
 	if p.defaultValue != "" {
-		return p.setDefaultOnValue(value)
+		setter := p.setterOnValue(value)
+		return setter(p.defaultValue)
 	}
 	return nil
 }
@@ -259,11 +260,6 @@ func (p *parameter) setDefaultFromEnv(value reflect.Value) (exists bool, err err
 		return true, err
 	}
 	return false, nil
-}
-
-func (p *parameter) setDefaultOnValue(value reflect.Value) error {
-	setter := p.setterOnValue(value)
-	return setter(p.defaultValue)
 }
 
 func (p *parameter) testDefaultValue() error {
