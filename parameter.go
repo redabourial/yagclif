@@ -223,10 +223,6 @@ func (p *parameter) setterOnValue(target reflect.Value) func(value string) error
 	return nil
 }
 
-func (p *parameter) setOnValue(target reflect.Value, value string) error {
-	return p.setterOnValue(target)(value)
-}
-
 // fills an object with the desired value
 func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, error) {
 	if p.used {
@@ -267,10 +263,7 @@ func (p *parameter) setDefaultFromEnv(value reflect.Value) (exists bool, err err
 
 func (p *parameter) setDefaultOnValue(value reflect.Value) error {
 	setter := p.setterOnValue(value)
-	if p.defaultValue != "" {
-		return setter(p.defaultValue)
-	}
-	return nil
+	return setter(p.defaultValue)
 }
 
 func (p *parameter) testDefaultValue() error {
