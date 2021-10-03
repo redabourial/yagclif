@@ -115,13 +115,26 @@ func (p *parameter) GetHelp() string {
 			buffer.WriteString(" ")
 		}
 	}
+
+	parenthesis := p.mandatory || p.defaultValue != "" || p.envKey != ""
+	if parenthesis {
+		buffer.WriteString("(")
+	}
+	infos := make([]string, 0)
 	if p.mandatory {
-		buffer.WriteString("(mandatory)")
-		buffer.WriteString(" ")
+		infos = append(infos, "mandatory")
 	}
 	if p.defaultValue != "" {
-		buffer.WriteString("(default = ")
-		buffer.WriteString(p.defaultValue)
+		v := fmt.Sprint("default=", p.defaultValue)
+		infos = append(infos, v)
+	}
+	if p.envKey != "" {
+		envValue := os.Getenv(p.envKey)
+		v := fmt.Sprint("env={key:", p.envKey, ",value:", envValue, "}")
+		infos = append(infos, v)
+	}
+	if parenthesis {
+		buffer.WriteString(strings.Join(infos, ";"))
 		buffer.WriteString(")")
 	}
 	if p.description != "" {
