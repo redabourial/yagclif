@@ -57,6 +57,14 @@ func TestNewParameters(t *testing.T) {
 			assert.NotNil(t, err)
 			assert.Nil(t, params)
 		})
+		t.Run("non valid recursion", func(t *testing.T) {
+			type foo2 struct {
+				faultyStruct
+			}
+			params, err := newParameters(reflect.TypeOf(foo2{}))
+			assert.NotNil(t, err)
+			assert.Nil(t, params)
+		})
 	})
 }
 
@@ -176,7 +184,6 @@ func TestCheckForMissingMandatory(t *testing.T) {
 		params[1].used = false
 		err := params.checkForMissingMandatory()
 		assert.NotNil(t, err)
-
 	})
 }
 func TestParseArguments(t *testing.T) {
