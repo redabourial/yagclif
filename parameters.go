@@ -98,7 +98,8 @@ func (params *parameters) getHelp() []string {
 
 func (params *parameters) assignDefaults(obj interface{}) error {
 	for _, param := range *params {
-		_, err := param.setDefault(obj)
+		value := param.getValue(obj)
+		err := param.setDefault(value)
 		if err != nil {
 			return err
 		}

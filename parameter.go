@@ -3,6 +3,7 @@ package yagclif
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -74,6 +75,8 @@ type parameter struct {
 	tipe reflect.Type
 	// Default Value
 	defaultValue string
+	// Default ENV key
+	envKey string
 }
 
 // Returns Cli names (text before the parameter)
@@ -220,6 +223,10 @@ func (p *parameter) setterOnValue(target reflect.Value) func(value string) error
 	return nil
 }
 
+func (p *parameter) setOnValue(target reflect.Value, value string) error {
+	return p.setterOnValue(target)(value)
+}
+
 // fills an object with the desired value
 func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, error) {
 	if p.used {
@@ -235,27 +242,42 @@ func (p *parameter) SetterCallback(obj interface{}) (func(value string) error, e
 	return setter, nil
 }
 
-func (p *parameter) setDefault(obj interface{}) (bool, error) {
-	defaultValue := p.defaultValue
-	if defaultValue != "" {
-		target := p.getValue(obj)
-		return true, p.setDefaultOnValue(target)
+func (p *parameter) setDefault(value reflect.Value) error {
+	exists, err := p.setDefaultFromEnv(value)
+	if exists && err != nil {
+		return err
+	} else if exists {
+		return nil
+	}
+	if p.defaultValue != "" {
+		return p.setDefaultOnValue(value)
+	}
+	return nil
+}
+
+func (p *parameter) setDefaultFromEnv(value reflect.Value) (exists bool, err error) {
+	setter := p.setterOnValue(value)
+	envValue := os.Getenv(p.envKey)
+	if envValue != "" {
+		err := setter(envValue)
+		return true, err
 	}
 	return false, nil
 }
 
 func (p *parameter) setDefaultOnValue(value reflect.Value) error {
-	if p.defaultValue == "" {
-		return nil
-	}
 	setter := p.setterOnValue(value)
-	return setter(p.defaultValue)
+	if p.defaultValue != "" {
+		return setter(p.defaultValue)
+	}
+	return nil
 }
+
 func (p *parameter) testDefaultValue() error {
 	setMockValue := func(value interface{}) error {
 		valueType := reflect.TypeOf(value)
 		mockValue := reflect.New(valueType).Elem()
-		return p.setDefaultOnValue(mockValue)
+		return p.setDefault(mockValue)
 	}
 	switch p.tipe {
 	case reflect.TypeOf(false):
@@ -277,7 +299,7 @@ func (p *parameter) validate() error {
 			p.name, s,
 		)
 	}
-	if (p.mandatory || p.tipe == reflect.TypeOf(true)) && p.defaultValue != "" {
+	if (p.mandatory || p.tipe == reflect.TypeOf(true)) && (p.defaultValue != "" || p.envKey != "") {
 		return getError("can not be mandatory or have a default value")
 	} else if !p.IsArrayType() && strings.Trim(p.delimiter, " ") != "" {
 		return getError("delimiter on non array type")
@@ -306,6 +328,9 @@ func (p *parameter) fillParameter(constraint string) error {
 		return nil
 	case "default":
 		p.defaultValue = value
+		return nil
+	case "env":
+		p.envKey = value
 		return nil
 	case "delimiter":
 		p.delimiter = value

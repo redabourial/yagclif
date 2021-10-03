@@ -203,6 +203,7 @@ func TestFillParameter(t *testing.T) {
 			param.fillParameter("mandatory"),
 			param.fillParameter("delimiter:;"),
 			param.fillParameter("default:44"),
+			param.fillParameter("env:env_key"),
 		)
 		assert.Equal(t, parameter{
 			description:  "42",
@@ -210,6 +211,7 @@ func TestFillParameter(t *testing.T) {
 			mandatory:    true,
 			delimiter:    ";",
 			defaultValue: "44",
+			envKey:       "env_key",
 		}, *param)
 	})
 	t.Run("splitError", func(t *testing.T) {

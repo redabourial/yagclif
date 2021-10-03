@@ -101,7 +101,9 @@ func TestAssignDefault(t *testing.T) {
 	t.Run("works", func(t *testing.T) {
 		type Foo struct {
 			Solution int `yagclif:"default:42"`
+			Problem  int `yagclif:"default:52;env:TestAssignDefault_Problem"`
 		}
+		os.Setenv("TestAssignDefault_Problem", "53")
 		fooInstance := Foo{}
 		params, err := newParameters(reflect.TypeOf(fooInstance))
 		assert.Nil(t, err)
@@ -110,6 +112,7 @@ func TestAssignDefault(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, Foo{
 			Solution: 42,
+			Problem:  53,
 		}, fooInstance)
 	})
 	t.Run("returns errors", func(t *testing.T) {
