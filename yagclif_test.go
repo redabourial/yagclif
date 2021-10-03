@@ -70,15 +70,20 @@ func TestRun(t *testing.T) {
 }
 func TestGetHelp(t *testing.T) {
 	type Context struct {
-		A int    `yagclif:"description:imA;mandatory"`
-		B string `yagclif:"description:FOO;default:someDefaultValue"`
+		AT int    `yagclif:"shortname:a;description:imA;mandatory"`
+		BT string `yagclif:"description:FOO;default:someDefaultValue;env:testgethelp"`
 	}
+	os.Setenv("testgethelp", "something")
 	fmt.Println("------------SAMPLE APP HELP------------")
 	app := NewCliApp("Hello", "simple hello worlds")
 	err := app.AddRoute("echo", "echoes the args", func([]string) {})
 	assert.Nil(t, err)
 	err = app.AddRoute("someAction", "does stuff", func(Context, []string) {})
 	assert.Nil(t, err)
-	fmt.Print(app.GetHelp())
-	fmt.Println("----------------------------------------------")
+	help := app.GetHelp()
+	assert.Contains(t, help, "Hello")
+	assert.Contains(t, help, "simple hello worlds")
+	assert.Contains(t, help, "someAction : does stuff")
+	assert.Contains(t, help, "--at -a int (mandatory): imA")
+	assert.Contains(t, help, "--bt string (default=someDefaultValue;env={key:testgethelp,value:something}): FOO")
 }
